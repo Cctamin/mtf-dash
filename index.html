@@ -546,14 +546,16 @@ async function load(){
   const lpx=document.getElementById('lastpx');
   if(lpx){ lpx.textContent=lastC!=null?fmtNum(lastC)+' USDT':'—'; }
   // 현재 포지션 미실현 수익률 = (현재가/진입가-1) 방향보정
-  const le=document.getElementById('lev1h'); if(le)le.textContent=LEVERAGE+'x';
+  // 레버리지 = 봇 public_state.leverage(Phase 43 자동노출), 없으면 fallback LEVERAGE(5).
+  const lev=(s1h&&Number.isFinite(s1h.leverage)&&s1h.leverage>0)?s1h.leverage:LEVERAGE;
+  const le=document.getElementById('lev1h'); if(le)le.textContent=lev+'x';
   const posret=document.getElementById('posret1h');
   if(posret){
     const pos=s1h&&s1h.position, pside=(pos&&pos.side||'flat').toLowerCase();
     if(pside!=='flat'&&pos&&pos.entry_price&&lastC){
-      // 미실현 = 가격수익률 × 레버리지(증거금 기준). +기호 5x 표기.
-      const raw=lastC/Number(pos.entry_price)-1, ur=(pside==='long'?raw:-raw)*LEVERAGE*100;
-      posret.textContent=fmtPct(ur)+' ('+LEVERAGE+'x)'; posret.className='cv posret '+(ur>=0?'up':'down');
+      // 미실현 = 가격수익률 × 레버리지(증거금 기준).
+      const raw=lastC/Number(pos.entry_price)-1, ur=(pside==='long'?raw:-raw)*lev*100;
+      posret.textContent=fmtPct(ur)+' ('+lev+'x)'; posret.className='cv posret '+(ur>=0?'up':'down');
     } else { posret.textContent='—'; posret.className='cv posret'; }
   }
 }
