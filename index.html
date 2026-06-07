@@ -242,7 +242,7 @@
 //   예: https://raw.githubusercontent.com/<USER>/<REPO>/main/public_state_1h.json
 const DATA_URL_1H = "https://raw.githubusercontent.com/Cctamin/mtf-dash-data/main/public_state_1h.json";  // 라이브(GitHub raw). 비우면 로컬.
 const LEVERAGE = 5;  // 봇 --account-leverage (max 5x). 미실현 수익률 = 가격수익률 × 레버리지.
-const CHART_H = 1300;  // TradingView 차트 높이(px). 카드/위젯 동기화.
+const CHART_H = 600;  // TradingView 차트 높이(px). 카드/위젯 동기화.
 // ─────────────────────────────────────────────────────────────────
 // 가격은 봇이 public_state.price_series 로 직접 공급 (외부 fetch 0 — 확장/지역/CORS 무관).
 const fmtPct=v=>(v>=0?"+":"")+Number(v).toFixed(2)+"%";
