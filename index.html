@@ -167,6 +167,7 @@
         <div class="ck">포지션 (1h)</div>
         <div><span class="pos flat" id="pos1h">FLAT</span></div>
         <div class="posmeta" id="posdet1h" style="display:none">진입 <span id="entry1h">—</span> · 수량 <span id="qty1h">—</span></div>
+        <div class="posmeta" id="holdinfo1h" style="display:none">⏳ holding 청산까지 <b id="hold1h">—</b></div>
       </div>
       <div class="card">
         <div class="ci b4">🔁</div>
@@ -399,6 +400,17 @@ function initTheme(){
   if(!t)t=(window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light';
   applyTheme(t);
 }
+function renderHolding(s1h){
+  // 청산 카운트다운: holding.bars_held / holding_bars (봇 Phase 41). 1h봉 = 1시간.
+  const el=document.getElementById('holdinfo1h'), out=document.getElementById('hold1h');
+  if(!el)return;
+  const h=s1h&&s1h.holding, side=(s1h&&s1h.position&&s1h.position.side||'flat').toLowerCase();
+  const bh=h&&h.bars_held, hb=h&&h.holding_bars;
+  if(side==='flat'||bh==null||hb==null){ el.style.display='none'; return; }
+  const remain=Math.max(0, hb-bh);
+  el.style.display='';
+  out.textContent=`${remain}봉 (~${remain}시간) · ${bh}/${hb}봉 보유`;
+}
 function renderEquity(s1h){
   const host=document.getElementById('eqspark'); if(!host)return;
   const ec=(s1h&&s1h.equity_curve)||[];
@@ -456,6 +468,7 @@ async function load(){
   renderTrend(s1h);
   renderTrades(null,s1h);
   renderEquity(s1h);
+  renderHolding(s1h);
 
   // 마지막 가격 카드 = 봇 price_series 마지막 종가 (메인 차트는 TradingView 실시간 별도)
   const bps=(s1h&&s1h.price_series)||[];
