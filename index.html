@@ -77,7 +77,10 @@
   .panel h3{font-size:15px;margin:0 0 3px;display:flex;align-items:center;gap:8px}.panel .psub{font-size:12px;color:var(--mut);margin:0 0 14px}
   .legend{display:flex;gap:16px;font-size:12px;color:var(--mut);margin-bottom:10px;flex-wrap:wrap}
   .lg{display:inline-flex;align-items:center;gap:5px}.sw{width:10px;height:10px;border-radius:3px;display:inline-block}
-  .chart-box{position:relative;height:360px}
+  .chart-box{position:relative;height:440px;overflow:hidden;border-radius:10px;border:1px solid var(--line)}
+  .eqspark svg{display:block}
+  .eqmeta{display:flex;justify-content:space-between;font-size:11px;color:var(--mut);margin-top:6px}
+  .eqbig{font-size:22px;font-weight:800;letter-spacing:-.4px}
   .col-r{display:flex;flex-direction:column;gap:18px}
   /* 추세 */
   .trendrow{display:flex;justify-content:space-between;align-items:center;padding:11px 2px;border-bottom:1px solid var(--line);font-size:14px}
@@ -184,7 +187,14 @@
           <div class="trendrow"><span class="k">1d 추세</span><span class="v trend neutral" id="trend1d">—</span></div>
           <div class="trendnote">close vs SMA20/50 정렬 기준. 1d는 데이터 부족 시 중립으로 표시될 수 있음.</div>
         </div>
-        <div class="panel" id="trades">
+        <div class="panel" id="equityPanel">
+          <h3>📈 자본 추이</h3>
+          <p class="psub">최근 구간 equity (봇 기록)</p>
+          <div class="eqbig" id="eqcur">—</div>
+          <div id="eqspark"></div>
+        </div>
+        <!-- 매매기록: 거래 누적되면 복구(현재 0건이라 숨김) -->
+        <div class="panel" id="trades" style="display:none">
           <h3>📒 매매 기록</h3>
           <p class="psub">봇 진입/청산 (최근순)</p>
           <div id="tradelist" class="tradelist"><div class="tl-empty">아직 매매 없음</div></div>
@@ -355,6 +365,27 @@ function renderTrades(s4h, s1h){
   }).join('');
 }
 
+function renderEquity(s1h){
+  const host=document.getElementById('eqspark'); if(!host)return;
+  const ec=(s1h&&s1h.equity_curve)||[];
+  const cur=document.getElementById('eqcur');
+  const vals=ec.map(p=>Number(p[1])).filter(v=>isFinite(v));
+  if(vals.length<2){host.innerHTML='<div class="eqmeta">데이터 부족 — 봇 누적 대기</div>';if(cur)cur.textContent='—';return;}
+  const last=vals[vals.length-1], first=vals[0];
+  const min=Math.min(...vals), max=Math.max(...vals), rng=(max-min)||1;
+  const W=320,H=96,pad=5;
+  const pts=vals.map((v,i)=>{
+    const x=pad+i/(vals.length-1)*(W-2*pad);
+    const y=pad+(1-(v-min)/rng)*(H-2*pad);
+    return x.toFixed(1)+','+y.toFixed(1);
+  }).join(' ');
+  const up=last>=first, col=up?'var(--up)':'var(--down)';
+  const chg=(last/first-1)*100;
+  if(cur){cur.textContent=fmtNum(last)+' USDT'; cur.className='eqbig '+(up?'up':'down');}
+  host.innerHTML=`<svg viewBox="0 0 ${W} ${H}" width="100%" height="${H}" preserveAspectRatio="none">`
+    +`<polyline points="${pts}" fill="none" stroke="${col}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/></svg>`
+    +`<div class="eqmeta"><span>구간 ${fmtPct(chg)}</span><span>저 ${fmtNum(min)} · 고 ${fmtNum(max)}</span></div>`;
+}
 async function load(){
   // 1h 단독 매매 시스템. 가격차트=TradingView(실시간 별도). 봇 데이터=카드/추세/매매기록.
   // raw URL 우선(라이브), 실패 시 로컬 fallback(로컬 서버/스냅샷) → 둘 다 작동.
@@ -390,6 +421,7 @@ async function load(){
   setSys('1h',s1h);
   renderTrend(s1h);
   renderTrades(null,s1h);
+  renderEquity(s1h);
 
   // 마지막 가격 카드 = 봇 price_series 마지막 종가 (메인 차트는 TradingView 실시간 별도)
   const bps=(s1h&&s1h.price_series)||[];
