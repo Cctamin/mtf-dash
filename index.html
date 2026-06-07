@@ -86,7 +86,8 @@
   .panel h3{font-size:15px;margin:0 0 3px;display:flex;align-items:center;gap:8px}.panel .psub{font-size:12px;color:var(--mut);margin:0 0 14px}
   .legend{display:flex;gap:16px;font-size:12px;color:var(--mut);margin-bottom:10px;flex-wrap:wrap}
   .lg{display:inline-flex;align-items:center;gap:5px}.sw{width:10px;height:10px;border-radius:3px;display:inline-block}
-  .chart-box{position:relative;height:400px;overflow:hidden;border-radius:10px;border:1px solid var(--line)}
+  .chart-box{position:relative;height:520px;overflow:hidden;border-radius:10px;border:1px solid var(--line)}
+  .chart-box>div,.chart-box iframe{height:100%!important;width:100%!important}
   .eqspark svg{display:block}
   .eqmeta{display:flex;justify-content:space-between;font-size:11px;color:var(--mut);margin-top:6px}
   .eqbig{font-size:22px;font-weight:800;letter-spacing:-.4px}
@@ -184,36 +185,35 @@
       </div>
     </div>
 
-    <!-- 차트 + 우측 패널 -->
-    <div class="grid">
-      <div class="panel" id="chart">
-        <h3>💹 BTC/USD 실시간 차트</h3>
-        <p class="psub">TradingView · COINBASE:BTCUSD · 진입/청산은 우측 매매기록 참고</p>
-        <div class="chart-box tradingview-widget-container"><!-- mountTV()가 테마 맞춰 채움 --></div>
-        <div style="font-size:11px;color:var(--mut);margin-top:8px" id="diag">TradingView 실시간 · 봇 데이터는 카드/추세/매매기록에 반영</div>
-      </div>
+    <!-- 가격 차트 (전체폭, 단독) -->
+    <div class="panel" id="chart">
+      <h3>💹 BTC/USD 실시간 차트</h3>
+      <p class="psub">TradingView · COINBASE:BTCUSD · 진입/청산은 아래 매매기록 참고</p>
+      <div class="chart-box tradingview-widget-container"><!-- mountTV()가 테마 맞춰 채움 --></div>
+      <div style="font-size:11px;color:var(--mut);margin-top:8px" id="diag">TradingView 실시간 · 봇 데이터는 카드/추세/매매기록에 반영</div>
+    </div>
 
-      <div class="col-r">
-        <div class="panel">
-          <h3>🧭 상위 추세 (참고)</h3>
-          <p class="psub">1h 신호가 필터로 사용 · 매매 안 함</p>
-          <div class="trendrow"><span class="k">4h 추세</span><span class="v trend neutral" id="trend4h">—</span></div>
-          <div class="trendrow"><span class="k">1d 추세</span><span class="v trend neutral" id="trend1d">—</span></div>
-          <div class="trendnote">close vs SMA20/50 정렬 기준. 1d는 데이터 부족 시 중립으로 표시될 수 있음.</div>
-        </div>
-        <div class="panel" id="equityPanel">
-          <h3>📈 자본 추이</h3>
-          <p class="psub">최근 구간 equity (봇 기록)</p>
-          <div class="eqbig" id="eqcur">—</div>
-          <div id="eqspark"></div>
-        </div>
-        <!-- 매매기록: 거래 누적되면 복구(현재 0건이라 숨김) -->
-        <div class="panel" id="trades" style="display:none">
-          <h3>📒 매매 기록</h3>
-          <p class="psub">봇 진입/청산 (최근순)</p>
-          <div id="tradelist" class="tradelist"><div class="tl-empty">아직 매매 없음</div></div>
-        </div>
+    <!-- 추세 + 자본추이 (차트 아래) -->
+    <div class="grid2">
+      <div class="panel">
+        <h3>🧭 상위 추세 (참고)</h3>
+        <p class="psub">1h 신호가 필터로 사용 · 매매 안 함</p>
+        <div class="trendrow"><span class="k">4h 추세</span><span class="v trend neutral" id="trend4h">—</span></div>
+        <div class="trendrow"><span class="k">1d 추세</span><span class="v trend neutral" id="trend1d">—</span></div>
+        <div class="trendnote">close vs SMA20/50 정렬 기준. 1d는 데이터 부족 시 중립으로 표시될 수 있음.</div>
       </div>
+      <div class="panel" id="equityPanel">
+        <h3>📈 자본 추이</h3>
+        <p class="psub">최근 구간 equity (봇 기록)</p>
+        <div class="eqbig" id="eqcur">—</div>
+        <div id="eqspark"></div>
+      </div>
+    </div>
+    <!-- 매매기록: 거래 누적되면 복구(현재 0건이라 숨김) -->
+    <div class="panel" id="trades" style="display:none">
+      <h3>📒 매매 기록</h3>
+      <p class="psub">봇 진입/청산 (최근순)</p>
+      <div id="tradelist" class="tradelist"><div class="tl-empty">아직 매매 없음</div></div>
     </div>
 
     <!-- 매매통계 + 캘린더 (closed_trades 기반 · 청산 거래 쌓이면 채워짐) -->
