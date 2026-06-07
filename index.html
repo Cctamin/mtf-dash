@@ -4,7 +4,6 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>밥값 트레이더 · MTF Similarity</title>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <!-- Phase 31: 캔들 = Chart.js 코어 bar만으로 그림(floating bar). 외부 플러그인 0(financial 플러그인은 v3용 → v4 비호환). -->
 <style>
   :root{
@@ -147,7 +146,7 @@
       </div>
       <div class="card">
         <div class="ci b2">📈</div>
-        <div class="ck">누적 수익률</div>
+        <div class="ck">이번달 수익률</div>
         <div class="cv" id="ret1h">—</div>
       </div>
       <div class="card">
@@ -166,14 +165,15 @@
     <!-- 차트 + 우측 패널 -->
     <div class="grid">
       <div class="panel" id="chart">
-        <h3>💹 BTC/USDT 가격 (1h 캔들)</h3>
-        <p class="psub">진입 ▲ / 청산 ▼ · 봇 공급(외부 fetch 0)</p>
-        <div class="legend">
-          <span class="lg"><span class="sw" style="background:var(--c1h)"></span>1h 매매 마커</span>
-          <span class="lg">▲ 매수(롱)</span><span class="lg">▼ 매도(숏/청산)</span>
+        <h3>💹 BTC/USD 실시간 차트</h3>
+        <p class="psub">TradingView · COINBASE:BTCUSD · 진입/청산은 우측 매매기록 참고</p>
+        <div class="chart-box tradingview-widget-container">
+          <div class="tradingview-widget-container__widget" style="height:100%;width:100%"></div>
+          <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js" async>
+          {"autosize":true,"symbol":"COINBASE:BTCUSD","interval":"60","timezone":"Asia/Tokyo","theme":"light","style":"1","locale":"kr","hide_side_toolbar":true,"allow_symbol_change":false,"save_image":false,"calendar":false}
+          </script>
         </div>
-        <div class="chart-box"><canvas id="price"></canvas></div>
-        <div style="font-size:11px;color:var(--mut);margin-top:8px" id="diag">로딩…</div>
+        <div style="font-size:11px;color:var(--mut);margin-top:8px" id="diag">TradingView 실시간 · 봇 데이터는 카드/추세/매매기록에 반영</div>
       </div>
 
       <div class="col-r">
@@ -309,7 +309,11 @@ function setSys(tag, state){
     document.getElementById('entry'+tag).textContent=p.entry_price!=null?fmtNum(p.entry_price):'—';
     document.getElementById('qty'+tag).textContent=p.size!=null?Math.abs(Number(p.size)):'—';
   } else { det.style.display='none'; }
-  const re=document.getElementById('ret'+tag);const rv=perf.cumulative_return_pct||0;re.textContent=fmtPct(rv);re.className='cv '+(rv>=0?'up':'down');
+  // 이번달 수익률 = monthly_profit / month_baseline (밥값과 동일 기준). baseline = current_equity - monthly_profit.
+  const mpv=perf.monthly_profit_usd, eqv=perf.current_equity;
+  const mbase=(mpv!=null&&eqv!=null)?(eqv-mpv):null;
+  const rv=(mbase&&mbase>0)?(mpv/mbase*100):(perf.cumulative_return_pct||0);
+  const re=document.getElementById('ret'+tag);re.textContent=fmtPct(rv);re.className='cv '+(rv>=0?'up':'down');
   document.getElementById('eq'+tag).textContent=perf.current_equity!=null?fmtNum(perf.current_equity)+' USDT':'—';
   document.getElementById('tr'+tag).textContent=perf.trades_total!=null?perf.trades_total:'—';
   document.getElementById('up'+tag).textContent=state?.health?.uptime_h!=null?Number(state.health.uptime_h).toFixed(1)+'h':'—';
@@ -352,14 +356,10 @@ function renderTrades(s4h, s1h){
 }
 
 async function load(){
-  // 1h 단독 매매 시스템. 4h는 1h 신호 안에 추세필터로 내장(별도 봇 아님).
-  // 차트 가격 = Coinbase(비-바이낸스) 우선, 실패 시 봇 price_series fallback.
+  // 1h 단독 매매 시스템. 가격차트=TradingView(실시간 별도). 봇 데이터=카드/추세/매매기록.
   // raw URL 우선(라이브), 실패 시 로컬 fallback(로컬 서버/스냅샷) → 둘 다 작동.
-  const [s1hRemote, extPs]=await Promise.all([DATA_URL_1H?fetchJSON(DATA_URL_1H):Promise.resolve(null), fetchExternalCandles()]);
+  const s1hRemote = DATA_URL_1H?await fetchJSON(DATA_URL_1H):null;
   const s1h = s1hRemote || await fetchJSON('public_state_1h.json');
-  const botPs=(s1h&&s1h.price_series)||[];
-  const ps=(extPs&&extPs.length)?extPs:botPs;
-  const pxSrc=(extPs&&extPs.length)?'Coinbase':'봇';
   const acct=s1h;
   const err=document.getElementById('err');
   if(!acct){err.style.display='block';err.textContent='⚠ public_state_1h.json 없음 — 1h 봇 가동/경로 확인 (dashboard/ 에서 ./serve.sh)';}
@@ -391,26 +391,10 @@ async function load(){
   renderTrend(s1h);
   renderTrades(null,s1h);
 
-  const diag=document.getElementById('diag');
-  if(ps.length){
-    try{
-      // 봉/마커 안 바뀌면 재렌더 스킵 (마지막 봉 ts + 봉수 + 마커수로 서명)
-      const nMark=(s1h?.trades?.length||0);
-      const lastRow=ps[ps.length-1];
-      const lastClose=Number(lastRow[lastRow.length-1]);  // close = 마지막 요소(캔들 [ms,o,h,l,c] / 선 [ms,close] 공통)
-      const kind=(lastRow.length>=5)?'캔들':'선';
-      const sig=kind+':'+ps.length+':'+lastRow[0]+':'+nMark;
-      if(sig!==lastChartSig){ renderChart(ps, [], markers(s1h,'1h','1h')); lastChartSig=sig; }
-      document.getElementById('lastpx').textContent=fmtNum(lastClose)+' USDT';
-      diag.textContent=`price ${ps.length}봉(${kind}, ${pxSrc} 공급) · 마커 ${nMark}`;
-    }catch(e){
-      diag.textContent='차트 렌더 에러: '+e.message;
-      err.style.display='block'; err.textContent='⚠ 차트 렌더 실패: '+e.message;
-    }
-  } else {
-    document.getElementById('lastpx').textContent='가격 대기';
-    diag.textContent='price_series 비어있음 — 봇 가동 / public_state 갱신 확인';
-  }
+  // 마지막 가격 카드 = 봇 price_series 마지막 종가 (메인 차트는 TradingView 실시간 별도)
+  const bps=(s1h&&s1h.price_series)||[];
+  const lpx=document.getElementById('lastpx');
+  if(lpx){ lpx.textContent=bps.length?fmtNum(Number(bps[bps.length-1].slice(-1)[0]))+' USDT':'—'; }
 }
 load();setInterval(load,10000);
 </script>
