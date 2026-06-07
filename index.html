@@ -378,10 +378,11 @@ async function load(){
 
   if(acct){
     document.getElementById('updated').textContent='업데이트 '+(acct.updated_at?fmtT(Date.parse(acct.updated_at)):'—');
-    // 봇 LIVE/OFF = mode + heartbeat 신선도(5분 내 = LIVE). 정적호스팅 스냅샷이면 시간 지나 OFF로 표기(정직).
+    // 봇 LIVE/OFF = mode + heartbeat 신선도. 임계 10분 = raw CDN 캐시(~5분)+push 간격(2분) 지연 커버.
+    // (봇은 30초마다 기록하지만, GitHub raw 캐시 때문에 브라우저가 보는 데이터는 수분 묵을 수 있음 → 10분.)
     const ts=acct.updated_at?Date.parse(acct.updated_at):0;
     const ageMin=ts?(Date.now()-ts)/60000:Infinity;
-    const live=(acct.mode==='live')&&ageMin<5;
+    const live=(acct.mode==='live')&&ageMin<10;
     const pill=document.getElementById('botPill');
     pill.className='pill '+(live?'live':'off');
     document.getElementById('botStat').textContent=live?'봇 LIVE':(isFinite(ageMin)?(ageMin<1440?'봇 OFF · '+Math.round(ageMin)+'분 전':'봇 OFF · '+Math.round(ageMin/1440)+'일 전'):'봇 OFF');
