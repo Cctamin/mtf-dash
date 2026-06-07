@@ -88,7 +88,7 @@
   .panel h3{font-size:15px;margin:0 0 3px;display:flex;align-items:center;gap:8px}.panel .psub{font-size:12px;color:var(--mut);margin:0 0 14px}
   .legend{display:flex;gap:16px;font-size:12px;color:var(--mut);margin-bottom:10px;flex-wrap:wrap}
   .lg{display:inline-flex;align-items:center;gap:5px}.sw{width:10px;height:10px;border-radius:3px;display:inline-block}
-  .chart-box{position:relative;height:1560px;overflow:hidden;border-radius:10px;border:1px solid var(--line)}
+  .chart-box{position:relative;height:1300px;overflow:hidden;border-radius:10px;border:1px solid var(--line)}
   .chart-box>div,.chart-box iframe{height:100%!important;width:100%!important}
   .eqspark svg{display:block}
   .eqmeta{display:flex;justify-content:space-between;font-size:11px;color:var(--mut);margin-top:6px}
@@ -242,6 +242,7 @@
 //   예: https://raw.githubusercontent.com/<USER>/<REPO>/main/public_state_1h.json
 const DATA_URL_1H = "https://raw.githubusercontent.com/Cctamin/mtf-dash-data/main/public_state_1h.json";  // 라이브(GitHub raw). 비우면 로컬.
 const LEVERAGE = 5;  // 봇 --account-leverage (max 5x). 미실현 수익률 = 가격수익률 × 레버리지.
+const CHART_H = 1300;  // TradingView 차트 높이(px). 카드/위젯 동기화.
 // ─────────────────────────────────────────────────────────────────
 // 가격은 봇이 public_state.price_series 로 직접 공급 (외부 fetch 0 — 확장/지역/CORS 무관).
 const fmtPct=v=>(v>=0?"+":"")+Number(v).toFixed(2)+"%";
@@ -398,7 +399,8 @@ function mountTV(theme){
   const s=document.createElement('script');
   s.type='text/javascript'; s.async=true;
   s.src='https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js';
-  s.text=JSON.stringify({autosize:true,symbol:"COINBASE:BTCUSD",interval:"60",timezone:"Asia/Tokyo",
+  // autosize 대신 명시적 height = 컨테이너 높이 무시하고 차트가 그 크기로 렌더(카드 높이 확실히 반영).
+  s.text=JSON.stringify({width:"100%",height:CHART_H,symbol:"COINBASE:BTCUSD",interval:"60",timezone:"Asia/Tokyo",
     theme:theme,style:"1",locale:"kr",hide_side_toolbar:true,allow_symbol_change:false,save_image:false,calendar:false});
   box.appendChild(s);
 }
