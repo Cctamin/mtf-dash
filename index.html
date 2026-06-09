@@ -110,7 +110,8 @@
   /* trade list */
   .tradelist{display:flex;flex-direction:column;gap:2px;max-height:360px;overflow-y:auto}
   .tl-empty{color:var(--mut);font-size:13px;padding:8px 2px}
-  .tl-row{display:grid;grid-template-columns:1fr auto;grid-template-areas:"time price" "side price";gap:1px 10px;align-items:center;padding:10px 12px;border-radius:10px}
+  .tl-row{display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"time price" "side price";gap:1px 10px;align-items:center;padding:10px 12px;border-radius:10px}
+  .tl-row>span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .tl-row:nth-child(odd){background:var(--bg)}
   .tl-time{grid-area:time;color:var(--mut);font-size:11px}
   .tl-side{grid-area:side;font-weight:800;font-size:13px}
@@ -118,16 +119,18 @@
   .tl-sys{display:none}
   .tl-price{grid-area:price;font-weight:700;font-size:13px;justify-self:end}
   /* indicator race rows (5 columns, no overlap) */
-  .race-row{display:grid;grid-template-columns:minmax(110px,1.3fr) 64px 84px minmax(96px,1fr) minmax(72px,1fr);gap:10px;align-items:center;padding:9px 12px;border-radius:10px;font-size:13px}
+  .race-row{display:grid;grid-template-columns:minmax(90px,1.3fr) 56px 76px minmax(84px,1fr) minmax(64px,1fr);gap:10px;align-items:center;padding:9px 12px;border-radius:10px;font-size:13px}
   .race-row:nth-child(odd){background:var(--bg)}
+  .race-row>span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .race-row .rname{font-weight:700}
   .race-row .rcell{color:var(--mut);font-size:12px;text-align:right}
   .race-row .rval{font-weight:700;text-align:right}
   .race-row .rval.up{color:var(--up)}.race-row .rval.down{color:var(--down)}
   .race-row .rcell.up{color:var(--up)}.race-row .rcell.down{color:var(--down)}
   /* closed-trade rows (5 cols, wide price col, no overlap) */
-  .ct-row{display:grid;grid-template-columns:minmax(70px,auto) 50px minmax(120px,1.2fr) minmax(60px,auto) minmax(80px,auto);gap:10px;align-items:center;padding:9px 12px;border-radius:10px;font-size:13px}
+  .ct-row{display:grid;grid-template-columns:minmax(0,1fr) 48px minmax(0,1.4fr) minmax(0,0.7fr) minmax(0,0.9fr);gap:8px;align-items:center;padding:9px 12px;border-radius:10px;font-size:13px}
   .ct-row:nth-child(odd){background:var(--bg)}
+  .ct-row>span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .ct-row .ct-time{color:var(--mut);font-size:11px}
   .ct-row .ct-px{text-align:right;font-weight:600}
   .ct-row .cv{text-align:right;font-size:13px;font-weight:700}
