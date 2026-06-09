@@ -51,19 +51,20 @@
   @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(16,185,129,.5)}70%{box-shadow:0 0 0 8px rgba(16,185,129,0)}100%{box-shadow:0 0 0 0 rgba(16,185,129,0)}}
   .err{background:var(--down-soft);color:var(--down);padding:10px 16px;border-radius:10px;margin-bottom:14px;font-size:13px;display:none}
   .page{display:flex;flex-direction:column;gap:18px}
-  /* 🍚 밥값 hero = 거대 퍼센트 bar. 중앙=$0(점선), 좌=−110 빨강 / 우=+110 초록 채움. */
-  .verdict{border-radius:20px;padding:30px;box-shadow:0 10px 30px rgba(28,36,52,.10);position:relative;overflow:hidden;
-           background:var(--hero-empty);color:var(--ink);transition:background .6s ease;text-align:center}
-  .verdict::before{content:"";position:absolute;left:50%;top:0;bottom:0;border-left:2px dashed rgba(100,116,139,.65);transform:translateX(-1px);z-index:1}
-  .verdict .vzero{position:absolute;left:50%;top:8px;transform:translateX(-50%);font-size:10px;font-weight:700;color:var(--mut);opacity:.8;z-index:2}
-  .verdict>div:not(.vzero){position:relative;z-index:2}
-  .verdict .vlabel{font-size:12px;font-weight:700;letter-spacing:.3px;opacity:.9}
-  .verdict .vbig{font-size:36px;font-weight:900;letter-spacing:-.8px;line-height:1.15;margin-top:6px}
-  .verdict .vamt{font-size:15px;font-weight:800;margin-top:11px}
-  .verdict .vlabel,.verdict .vbig,.verdict .vamt{text-shadow:0 1px 3px rgba(255,255,255,.45)}
-  body.dark .verdict .vlabel,body.dark .verdict .vbig,body.dark .verdict .vamt{text-shadow:0 1px 3px rgba(0,0,0,.5)}
-  /* 채움이 짙어지면 텍스트 흰색으로 대비 확보 */
-  .verdict.strong .vlabel,.verdict.strong .vbig,.verdict.strong .vamt{color:#fff;text-shadow:0 1px 6px rgba(0,0,0,.4)}
+  /* 🍚 밥값 hero = 고정 그라데이션 게이지. 좌=−$110 빨강 → 중앙 $0 노랑 → 우=+$110 초록. 현재 수익=막대 마커. */
+  .verdict{border-radius:20px;padding:26px 30px 42px;box-shadow:0 10px 30px rgba(28,36,52,.10);position:relative;overflow:hidden;text-align:center;color:#fff;
+           background:linear-gradient(90deg,#ef4444 0%,#f59e0b 27%,#fde047 50%,#84cc16 73%,#10b981 100%)}
+  .verdict .vlabel,.verdict .vbig,.verdict .vamt{position:relative;z-index:2;text-shadow:0 1px 5px rgba(0,0,0,.5)}
+  .verdict .vlabel{font-size:12px;font-weight:700;letter-spacing:.3px}
+  .verdict .vbig{font-size:34px;font-weight:900;letter-spacing:-.8px;line-height:1.15;margin-top:6px}
+  .verdict .vamt{font-size:15px;font-weight:800;margin-top:8px}
+  /* $0 중앙 점선 */
+  .verdict::before{content:"";position:absolute;left:50%;top:10px;bottom:26px;border-left:2px dashed rgba(255,255,255,.85);transform:translateX(-1px);z-index:1}
+  /* 현재 수익 막대 마커 */
+  .vmark{position:absolute;top:8px;bottom:24px;border-left:3px solid #111827;box-shadow:0 0 0 1px rgba(255,255,255,.7);z-index:3;transition:left .5s ease}
+  .vmark .vchip{position:absolute;bottom:-22px;left:50%;transform:translateX(-50%);background:#111827;color:#fff;font-size:12px;font-weight:800;padding:2px 8px;border-radius:7px;white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,.35)}
+  .vmark .vchip::before{content:"▲";position:absolute;top:-9px;left:50%;transform:translateX(-50%);font-size:9px;color:#111827}
+  .vends{position:absolute;left:0;right:0;bottom:9px;display:flex;justify-content:space-between;padding:0 16px;font-size:10px;font-weight:700;color:rgba(255,255,255,.92);z-index:1}
   /* metric cards */
   .cards{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
   @media(max-width:900px){.cards{grid-template-columns:1fr}}
@@ -151,10 +152,11 @@
     <section class="page" data-page="dashboard">
       <!-- 🍚 밥값 -->
       <div class="verdict" id="verdict">
-        <div class="vzero">$0</div>
         <div class="vlabel">🍚 이번 달 밥값 — 수익 vs Claude Code Max 비용 ($110)</div>
         <div class="vbig" id="verdictBig">—</div>
         <div class="vamt" id="verdictAmt">—</div>
+        <div class="vmark" id="vmark"><span class="vchip" id="vmarkLbl">—</span></div>
+        <div class="vends"><span>−$110</span><span>$0</span><span>+$110</span></div>
       </div>
 
       <!-- 3 섹션: (자본+수익률) / (포지션+미실현) / 상위추세 -->
@@ -469,15 +471,11 @@ async function load(){
   document.getElementById('verdictBig').textContent=win?'🍚 이번달 밥값했음!':(profit>=0?'🍚 밥값 채우는 중':'밥값 못하고 있음 ㅠㅜ');
   const sg=profit>=0?'+':'-';
   document.getElementById('verdictAmt').textContent=win?`${sg}$${Math.abs(profit).toFixed(2)} · 목표 $${thr} 달성 ✓ (Claude Code Max 본전!)`:`현재 ${sg}$${Math.abs(profit).toFixed(2)} / $${thr} · ${Math.max(0,profit/thr*100).toFixed(0)}% 채움`;
-  // 섹션 전체를 솔리드로 칠함. 색만 손익 따라: $0=무색(옅음) → +목표 초록 / −목표 새빨강.
-  // 채움폭이 아니라 색 농도(옅음→짙음)가 손익 크기를 표현.
-  const mag=thr>0?Math.min(1,Math.abs(profit)/thr):0;
-  const posSide=profit>=0;
-  const pale=[233,237,243];                   // $0 ≈ 무색(hero-empty와 동일 톤)
-  const sat =posSide?[16,185,129]:[244,63,94];// +목표 초록 / −목표 빨강
-  const fc=pale.map((c,k)=>Math.round(c+(sat[k]-c)*mag));
-  v.style.background=`rgb(${fc[0]},${fc[1]},${fc[2]})`;
-  v.className='verdict'+(mag>=0.5?' strong':'');
+  // 고정 그라데이션(빨강 −110 ~ 노랑 $0 ~ 초록 +110). 현재 수익 = 막대 마커 위치로 표시.
+  // pos% = (수익 + 목표) / (2×목표) × 100. $0→50%(중앙), −목표→0%, +목표→100%.
+  const pos=Math.max(0,Math.min(100,(profit+thr)/(2*thr)*100));
+  const vm=document.getElementById('vmark'); if(vm)vm.style.left=pos+'%';
+  const vl=document.getElementById('vmarkLbl'); if(vl)vl.textContent=`${sg}$${Math.abs(profit).toFixed(2)}`;
 
   if(acct){
     document.getElementById('updated').textContent='업데이트 '+(acct.updated_at?fmtT(Date.parse(acct.updated_at)):'—');
