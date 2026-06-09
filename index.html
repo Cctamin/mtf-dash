@@ -227,6 +227,14 @@
       </div>
     </div>
 
+    <!-- 지표 레이스 (Phase 45, shadow 관찰 · 라이브 주문 미반영) -->
+    <div class="panel" id="race">
+      <h3>🏁 지표 레이스 <span style="font-size:12px;color:var(--mut);font-weight:400">(shadow · 관찰용)</span></h3>
+      <p class="psub" id="racemeta">24h hold · 승률 + expectancy(평균 net 수익) · expectancy 내림차순</p>
+      <div id="racelist" class="tradelist"><div class="tl-empty">레이스 데이터 대기 중</div></div>
+      <p class="psub" style="margin-top:8px;color:var(--mut)">⚠ 1h봉 24h hold = 윈도우 중첩 → 표본 실질 독립수 적음. 단일 레짐 in-sample. 주문 구동은 walk-forward 검증 후.</p>
+    </div>
+
     <div class="status">
       <span>1h 봇 가동 <b id="up1h">—</b></span>
       <span>마지막 가격 <b id="lastpx">—</b></span>
@@ -241,6 +249,7 @@
 // 라이브(GitHub raw): cron이 repo에 JSON push → 아래 raw URL 넣으면 리빌드 0으로 갱신.
 //   예: https://raw.githubusercontent.com/<USER>/<REPO>/main/public_state_1h.json
 const DATA_URL_1H = "https://raw.githubusercontent.com/Cctamin/mtf-dash-data/main/public_state_1h.json";  // 라이브(GitHub raw). 비우면 로컬.
+const DATA_URL_RACE = "https://raw.githubusercontent.com/Cctamin/mtf-dash-data/main/indicator_race.json";  // 지표 레이스 summary(shadow). 비우면 로컬 reports/indicator_race/summary.json.
 const LEVERAGE = 5;  // 봇 --account-leverage (max 5x). 미실현 수익률 = 가격수익률 × 레버리지.
 const CHART_H = 600;  // TradingView 차트 높이(px). 카드/위젯 동기화.
 // ─────────────────────────────────────────────────────────────────
@@ -470,6 +479,30 @@ function renderStats(s1h){
     cell('평균보유',avgHold!=null?avgHold.toFixed(1)+'h':'—')+
     cell('최근',fmtPct(lastRet),lastRet>=0?'up':'down');
 }
+function renderRace(race){
+  const host=document.getElementById('racelist'); if(!host)return;
+  const meta=document.getElementById('racemeta');
+  const agg=(race&&race.aggregate)||{};
+  const names=Object.keys(agg);
+  if(!names.length){host.innerHTML='<div class="tl-empty">레이스 데이터 대기 중 (sidecar 누적)</div>';return;}
+  if(meta){
+    const hold=race.hold_hours!=null?race.hold_hours:24;
+    meta.textContent=`${hold}h hold · 해결 ${race.ledger_count||0}거래 · 대기 ${race.pending_count||0} · slippage ${race.slippage_bps||0}bps · expectancy 내림차순`;
+  }
+  const rows=names.map(n=>({name:n,...agg[n]})).sort((a,b)=>Number(b.expectancy)-Number(a.expectancy));
+  host.innerHTML=rows.map((r,i)=>{
+    const exp=Number(r.expectancy||0), sumr=Number(r.sum_return||0);
+    const cls=exp>=0?'up':'down';
+    const rank=i===0?'🥇':i===1?'🥈':i===2?'🥉':('&nbsp;'+(i+1)+'&nbsp;');
+    return `<div class="tl-row">`+
+      `<span class="tl-time" style="min-width:96px">${rank} <b>${r.name}</b></span>`+
+      `<span class="tl-price">${r.trades}건</span>`+
+      `<span class="tl-price">승률 ${Number(r.win_rate||0).toFixed(0)}%</span>`+
+      `<span class="cv ${cls}">exp ${(exp>=0?'+':'')+exp.toFixed(3)}%</span>`+
+      `<span class="cv ${sumr>=0?'up':'down'}">${(sumr>=0?'+':'')+sumr.toFixed(1)}%</span>`+
+    `</div>`;
+  }).join('');
+}
 function renderCalendar(s1h){
   const host=document.getElementById('calheat'); if(!host)return;
   const ct=(s1h&&s1h.closed_trades)||[];
@@ -561,6 +594,9 @@ async function load(){
   renderHolding(s1h);
   renderStats(s1h);
   renderCalendar(s1h);
+  // 지표 레이스(shadow) — 별도 데이터 소스. 라이브 우선, 실패 시 로컬.
+  const race = (DATA_URL_RACE?await fetchJSON(DATA_URL_RACE):null) || await fetchJSON('../reports/indicator_race/summary.json');
+  renderRace(race);
 
   // 가격 = 실시간(Coinbase ticker) 우선, 실패 시 봇 price_series 마지막 종가 fallback.
   const bps=(s1h&&s1h.price_series)||[];
