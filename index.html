@@ -205,7 +205,8 @@
         <p class="psub">1h 신호가 필터로 사용 · 매매 안 함</p>
         <div class="trendrow"><span class="k">4h 추세</span><span class="v trend neutral" id="trend4h">—</span></div>
         <div class="trendrow"><span class="k">1d 추세</span><span class="v trend neutral" id="trend1d">—</span></div>
-        <div class="trendnote">close vs SMA20/50 정렬 기준. 1d는 데이터 부족 시 중립으로 표시될 수 있음.</div>
+        <div class="trendrow"><span class="k">🚦 Regime 게이트</span><span class="v trend neutral" id="gateStatus">—</span></div>
+        <div class="trendnote">게이트(E2): 1d 하락확정→short만 / 상승확정→long만 / 중립→신규진입 대기. close vs SMA20/50 기준.</div>
       </div>
       <div class="panel" id="equityPanel">
         <h3>📈 자본 추이</h3>
@@ -390,6 +391,15 @@ function renderTrend(s1h){
     const [txt,cls]=trendLabel(st);
     el.textContent=txt;el.className='v trend '+cls;
   });
+  // 🚦 Regime 게이트 = 1d 추세의 순수함수 (bullish→long / bearish→short / else flat)
+  const ge=document.getElementById('gateStatus');
+  if(ge){
+    const d=tc['1d']; let txt,cls;
+    if(d==='bullish'){txt='🟢 long 진입 허용';cls='up';}
+    else if(d==='bearish'){txt='🔴 short 진입 허용';cls='down';}
+    else{txt='⏸ 신규진입 대기 (flat)';cls='neutral';}
+    ge.textContent=txt;ge.className='v trend '+cls;
+  }
 }
 function renderTrades(s4h, s1h){
   const el=document.getElementById('tradelist');
