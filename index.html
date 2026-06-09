@@ -117,6 +117,14 @@
   .tl-side.buy{color:var(--up)}.tl-side.sell{color:var(--down)}
   .tl-sys{display:none}
   .tl-price{grid-area:price;font-weight:700;font-size:13px;justify-self:end}
+  /* indicator race rows (5 columns, no overlap) */
+  .race-row{display:grid;grid-template-columns:minmax(110px,1.3fr) 64px 84px minmax(96px,1fr) minmax(72px,1fr);gap:10px;align-items:center;padding:9px 12px;border-radius:10px;font-size:13px}
+  .race-row:nth-child(odd){background:var(--bg)}
+  .race-row .rname{font-weight:700}
+  .race-row .rcell{color:var(--mut);font-size:12px;text-align:right}
+  .race-row .rval{font-weight:700;text-align:right}
+  .race-row .rval.up{color:var(--up)}.race-row .rval.down{color:var(--down)}
+  .race-row .rcell.up{color:var(--up)}.race-row .rcell.down{color:var(--down)}
   /* status strip */
   .status{display:flex;gap:26px;flex-wrap:wrap;color:var(--mut);font-size:13px;padding:14px 4px 0}.status b{color:var(--ink)}
   footer{color:var(--mut);font-size:12px;margin-top:22px;padding:0 4px}
@@ -491,15 +499,15 @@ function renderRace(race){
   }
   const rows=names.map(n=>({name:n,...agg[n]})).sort((a,b)=>Number(b.expectancy)-Number(a.expectancy));
   host.innerHTML=rows.map((r,i)=>{
-    const exp=Number(r.expectancy||0), sumr=Number(r.sum_return||0);
-    const cls=exp>=0?'up':'down';
-    const rank=i===0?'🥇':i===1?'🥈':i===2?'🥉':('&nbsp;'+(i+1)+'&nbsp;');
-    return `<div class="tl-row">`+
-      `<span class="tl-time" style="min-width:96px">${rank} <b>${r.name}</b></span>`+
-      `<span class="tl-price">${r.trades}건</span>`+
-      `<span class="tl-price">승률 ${Number(r.win_rate||0).toFixed(0)}%</span>`+
-      `<span class="cv ${cls}">exp ${(exp>=0?'+':'')+exp.toFixed(3)}%</span>`+
-      `<span class="cv ${sumr>=0?'up':'down'}">${(sumr>=0?'+':'')+sumr.toFixed(1)}%</span>`+
+    const exp=Number(r.expectancy||0), sumr=Number(r.sum_return||0), wr=Number(r.win_rate||0);
+    const expCls=exp>=0?'up':'down', sumCls=sumr>=0?'up':'down';
+    const rank=i===0?'🥇':i===1?'🥈':i===2?'🥉':(i+1)+'.';
+    return `<div class="race-row">`+
+      `<span class="rname">${rank} ${r.name}</span>`+
+      `<span class="rcell">${r.trades}건</span>`+
+      `<span class="rcell">승률 ${wr.toFixed(0)}%</span>`+
+      `<span class="rval ${expCls}">exp ${(exp>=0?'+':'')+exp.toFixed(3)}%</span>`+
+      `<span class="rval ${sumCls}">${(sumr>=0?'+':'')+sumr.toFixed(1)}%</span>`+
     `</div>`;
   }).join('');
 }
