@@ -125,6 +125,13 @@
   .race-row .rval{font-weight:700;text-align:right}
   .race-row .rval.up{color:var(--up)}.race-row .rval.down{color:var(--down)}
   .race-row .rcell.up{color:var(--up)}.race-row .rcell.down{color:var(--down)}
+  /* closed-trade rows (5 cols, wide price col, no overlap) */
+  .ct-row{display:grid;grid-template-columns:minmax(70px,auto) 50px minmax(120px,1.2fr) minmax(60px,auto) minmax(80px,auto);gap:10px;align-items:center;padding:9px 12px;border-radius:10px;font-size:13px}
+  .ct-row:nth-child(odd){background:var(--bg)}
+  .ct-row .ct-time{color:var(--mut);font-size:11px}
+  .ct-row .ct-px{text-align:right;font-weight:600}
+  .ct-row .cv{text-align:right;font-size:13px;font-weight:700}
+  .ct-row .tl-side{font-weight:800}
   /* status strip */
   .status{display:flex;gap:26px;flex-wrap:wrap;color:var(--mut);font-size:13px;padding:14px 4px 0}.status b{color:var(--ink)}
   footer{color:var(--mut);font-size:12px;margin-top:22px;padding:0 4px}
@@ -412,12 +419,12 @@ function renderTrades(s4h, s1h){
       const sideLabel=side==='long'?'롱 ▲':'숏 ▼';
       const ret=Number(t.return_pct||0), pnl=Number(t.pnl_usd||0);
       const cls=ret>=0?'up':'down';
-      return `<div class="tl-row">`+
-        `<span class="tl-time">${fmtT(Date.parse(t.exit_time))}</span>`+
+      return `<div class="ct-row">`+
+        `<span class="ct-time">${fmtT(Date.parse(t.exit_time))}</span>`+
         `<span class="tl-side ${side}">${sideLabel}</span>`+
-        `<span class="tl-price">${fmtNum(t.entry_price)}→${fmtNum(t.exit_price)}</span>`+
+        `<span class="ct-px">${fmtNum(t.entry_price)}→${fmtNum(t.exit_price)}</span>`+
         `<span class="cv ${cls}">${fmtPct(ret)}</span>`+
-        `<span class="cv ${cls}">${(pnl>=0?'+':'')+pnl.toFixed(2)} USDT</span>`+
+        `<span class="cv ${cls}">${(pnl>=0?'+':'')+pnl.toFixed(2)}</span>`+
       `</div>`;
     }).join('');
     return;
