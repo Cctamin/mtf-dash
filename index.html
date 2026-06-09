@@ -469,19 +469,14 @@ async function load(){
   document.getElementById('verdictBig').textContent=win?'🍚 이번달 밥값했음!':(profit>=0?'🍚 밥값 채우는 중':'밥값 못하고 있음 ㅠㅜ');
   const sg=profit>=0?'+':'-';
   document.getElementById('verdictAmt').textContent=win?`${sg}$${Math.abs(profit).toFixed(2)} · 목표 $${thr} 달성 ✓ (Claude Code Max 본전!)`:`현재 ${sg}$${Math.abs(profit).toFixed(2)} / $${thr} · ${Math.max(0,profit/thr*100).toFixed(0)}% 채움`;
-  // 섹션 = 거대 퍼센트 bar. 중앙(50%)=$0. 손익+ → 중앙서 우로 초록, 손익− → 중앙서 좌로 빨강.
-  // 채움 길이 = (|손익|/목표)×50%(한쪽 반). 색 농도 = 비율 따라 옅음→짙음.
+  // 섹션 전체를 솔리드로 칠함. 색만 손익 따라: $0=무색(옅음) → +목표 초록 / −목표 새빨강.
+  // 채움폭이 아니라 색 농도(옅음→짙음)가 손익 크기를 표현.
   const mag=thr>0?Math.min(1,Math.abs(profit)/thr):0;
   const posSide=profit>=0;
-  const pale=posSide?[225,246,236]:[253,226,231];
-  const sat =posSide?[16,185,129]:[244,63,94];
+  const pale=[233,237,243];                   // $0 ≈ 무색(hero-empty와 동일 톤)
+  const sat =posSide?[16,185,129]:[244,63,94];// +목표 초록 / −목표 빨강
   const fc=pale.map((c,k)=>Math.round(c+(sat[k]-c)*mag));
-  const rgb=`rgb(${fc[0]},${fc[1]},${fc[2]})`;
-  const ext=(mag*50).toFixed(1);              // 중앙서 한쪽으로 뻗는 길이(%)
-  const E='var(--hero-empty)';
-  v.style.background = posSide
-    ? `linear-gradient(90deg, ${E} 0%, ${E} 50%, ${rgb} 50%, ${rgb} ${50+ +ext}%, ${E} ${50+ +ext}%, ${E} 100%)`
-    : `linear-gradient(90deg, ${E} 0%, ${E} ${50- +ext}%, ${rgb} ${50- +ext}%, ${rgb} 50%, ${E} 50%, ${E} 100%)`;
+  v.style.background=`rgb(${fc[0]},${fc[1]},${fc[2]})`;
   v.className='verdict'+(mag>=0.5?' strong':'');
 
   if(acct){
