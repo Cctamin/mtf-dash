@@ -10,13 +10,13 @@
     --side:#1c2434; --side2:#24303f; --side-ink:#dee4ee; --side-mut:#8a99af;
     --pri:#3c50e0; --pri-soft:#eef1fd;
     --up:#10b981; --up-soft:#e7f8f1; --down:#f43f5e; --down-soft:#feecef;
-    --amber:#f0a02c; --c4h:#8b5cf6;
+    --amber:#f0a02c; --c4h:#8b5cf6; --hero-empty:#e9edf3;
     --shadow:0 4px 18px rgba(28,36,52,.06); --radius:14px;
   }
   body.dark{
     --bg:#0d1117; --card:#161b22; --ink:#e6edf3; --mut:#8b949e; --line:#2a3038;
     --side:#010409; --side2:#161b22; --side-ink:#e6edf3; --side-mut:#7d8794;
-    --pri-soft:#1b2435; --up-soft:#0f2a1e; --down-soft:#2a1519;
+    --pri-soft:#1b2435; --up-soft:#0f2a1e; --down-soft:#2a1519; --hero-empty:#1b2230;
     --shadow:0 4px 18px rgba(0,0,0,.45);
   }
   *{box-sizing:border-box}
@@ -51,19 +51,16 @@
   @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(16,185,129,.5)}70%{box-shadow:0 0 0 8px rgba(16,185,129,0)}100%{box-shadow:0 0 0 0 rgba(16,185,129,0)}}
   .err{background:var(--down-soft);color:var(--down);padding:10px 16px;border-radius:10px;margin-bottom:14px;font-size:13px;display:none}
   .page{display:flex;flex-direction:column;gap:18px}
-  /* 🍚 밥값 hero */
-  .verdict{border-radius:20px;padding:26px 28px;box-shadow:0 10px 30px rgba(28,36,52,.10);position:relative;overflow:hidden}
-  .verdict.win{background:linear-gradient(120deg,#10b981,#34d399)}
-  .verdict.lose{background:linear-gradient(120deg,#fbbf5a,#fcd34d)}
-  .verdict .vlabel{font-size:12px;font-weight:700;letter-spacing:.3px;opacity:.92}
-  .verdict.win .vlabel{color:rgba(255,255,255,.92)}.verdict.lose .vlabel{color:#92600f}
-  .verdict .vbig{font-size:34px;font-weight:900;letter-spacing:-.8px;line-height:1.15;margin-top:6px}
-  .verdict.win .vbig{color:#fff;text-shadow:0 2px 10px rgba(0,70,48,.18)}.verdict.lose .vbig{color:#7c5210}
+  /* 🍚 밥값 hero = 거대 퍼센트 bar (배경이 좌→우로 채워짐, 색=손익/목표 비율) */
+  .verdict{border-radius:20px;padding:30px 30px;box-shadow:0 10px 30px rgba(28,36,52,.10);position:relative;overflow:hidden;
+           background:var(--hero-empty);color:var(--ink);transition:background .6s ease}
+  .verdict .vlabel{font-size:12px;font-weight:700;letter-spacing:.3px;opacity:.9}
+  .verdict .vbig{font-size:36px;font-weight:900;letter-spacing:-.8px;line-height:1.15;margin-top:6px}
   .verdict .vamt{font-size:15px;font-weight:800;margin-top:11px}
-  .verdict.win .vamt{color:#fff}.verdict.lose .vamt{color:#8a5a12}
-  .vbar{height:9px;border-radius:999px;margin-top:15px;max-width:520px;overflow:hidden;background:rgba(255,255,255,.4)}
-  .vbar>i{display:block;height:100%;border-radius:999px;transition:width .5s}
-  .verdict.win .vbar>i{background:#fff}.verdict.lose .vbar>i{background:linear-gradient(90deg,#f0a02c,#fbbf5a)}
+  .verdict .vlabel,.verdict .vbig,.verdict .vamt{text-shadow:0 1px 3px rgba(255,255,255,.45)}
+  body.dark .verdict .vlabel,body.dark .verdict .vbig,body.dark .verdict .vamt{text-shadow:0 1px 3px rgba(0,0,0,.5)}
+  /* 채움이 짙어지면(목표/−110 근접) 텍스트 흰색으로 대비 확보 */
+  .verdict.strong .vlabel,.verdict.strong .vbig,.verdict.strong .vamt{color:#fff;text-shadow:0 1px 6px rgba(0,0,0,.35)}
   /* metric cards */
   .cards{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
   @media(max-width:900px){.cards{grid-template-columns:1fr}}
@@ -150,11 +147,10 @@
     <!-- ═══ 페이지 1: 대시보드 ═══ -->
     <section class="page" data-page="dashboard">
       <!-- 🍚 밥값 -->
-      <div class="verdict lose" id="verdict">
+      <div class="verdict" id="verdict">
         <div class="vlabel">🍚 이번 달 밥값 — 수익 vs Claude Code Max 비용 ($110)</div>
         <div class="vbig" id="verdictBig">—</div>
         <div class="vamt" id="verdictAmt">—</div>
-        <div class="vbar"><i id="verdictBar" style="width:0%"></i></div>
       </div>
 
       <!-- 3 섹션: (자본+수익률) / (포지션+미실현) / 상위추세 -->
@@ -465,14 +461,20 @@ async function load(){
   const profit=(mp!=null&&isFinite(mp))?mp:0;
   const thr=acct?.performance?.breakeven_threshold_usd??110;
   const win=profit>=thr;
-  const v=document.getElementById('verdict');v.className='verdict '+(win?'win':'lose');
-  document.getElementById('verdictBig').textContent=win?'🍚 이번달 밥값했음!':'이번달 밥값 못하고 있음 ㅠㅜ';
+  const v=document.getElementById('verdict');
+  document.getElementById('verdictBig').textContent=win?'🍚 이번달 밥값했음!':(profit>=0?'🍚 밥값 채우는 중':'밥값 못하고 있음 ㅠㅜ');
   const sg=profit>=0?'+':'-';
   document.getElementById('verdictAmt').textContent=win?`${sg}$${Math.abs(profit).toFixed(2)} · 목표 $${thr} 달성 ✓ (Claude Code Max 본전!)`:`현재 ${sg}$${Math.abs(profit).toFixed(2)} / $${thr} · ${Math.max(0,profit/thr*100).toFixed(0)}% 채움`;
-  const ratio=thr>0?profit/thr:0, rc=Math.max(0,Math.min(1,ratio));
-  const bar=document.getElementById('verdictBar');
-  bar.style.width=Math.max(3,rc*100)+'%';
-  bar.style.background='linear-gradient(90deg,#f43f5e,'+colorAt(rc)+')';
+  // 섹션 = 거대 퍼센트 bar: 0=무색 → +110 초록(채움) / −110 새빨강. 채움폭 = |손익|/목표.
+  const mag=thr>0?Math.min(1,Math.abs(profit)/thr):0;
+  const posSide=profit>=0;
+  const pale=posSide?[225,246,236]:[253,226,231];
+  const sat =posSide?[16,185,129]:[244,63,94];
+  const fc=pale.map((c,k)=>Math.round(c+(sat[k]-c)*mag));
+  const rgb=`rgb(${fc[0]},${fc[1]},${fc[2]})`;
+  const pct=(mag*100).toFixed(1);
+  v.style.background=`linear-gradient(90deg, ${rgb} 0%, ${rgb} ${pct}%, var(--hero-empty) ${pct}%, var(--hero-empty) 100%)`;
+  v.className='verdict'+(mag>=0.5?' strong':'');
 
   if(acct){
     document.getElementById('updated').textContent='업데이트 '+(acct.updated_at?fmtT(Date.parse(acct.updated_at)):'—');
