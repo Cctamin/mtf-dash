@@ -119,22 +119,22 @@
   .tl-sys{display:none}
   .tl-price{grid-area:price;font-weight:700;font-size:13px;justify-self:end}
   /* indicator race rows (5 columns, no overlap) */
-  .race-row{display:grid;grid-template-columns:minmax(90px,1.3fr) 56px 76px minmax(84px,1fr) minmax(64px,1fr);gap:10px;align-items:center;padding:9px 12px;border-radius:10px;font-size:13px}
+  /* fixed columns + trailing 1fr spacer = left-grouped, aligned, no stretch/truncate */
+  .race-row{display:grid;grid-template-columns:140px 64px 92px 108px 92px 1fr;gap:10px;align-items:center;padding:9px 12px;border-radius:10px;font-size:13px}
   .race-row:nth-child(odd){background:var(--bg)}
-  .race-row>span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .race-row .rname{font-weight:700}
-  .race-row .rcell{color:var(--mut);font-size:12px;text-align:right}
-  .race-row .rval{font-weight:700;text-align:right}
+  .race-row .rname{font-weight:700;white-space:nowrap}
+  .race-row .rcell{color:var(--mut);font-size:12px}
+  .race-row .rval{font-weight:700}
   .race-row .rval.up{color:var(--up)}.race-row .rval.down{color:var(--down)}
   .race-row .rcell.up{color:var(--up)}.race-row .rcell.down{color:var(--down)}
-  /* closed-trade rows (5 cols, wide price col, no overlap) */
-  .ct-row{display:grid;grid-template-columns:minmax(0,1fr) 48px minmax(0,1.4fr) minmax(0,0.7fr) minmax(0,0.9fr);gap:8px;align-items:center;padding:9px 12px;border-radius:10px;font-size:13px}
+  /* closed-trade rows: date | side | entry→exit | ret% | pnl + spacer */
+  .ct-row{display:grid;grid-template-columns:130px 54px 170px 78px 90px 1fr;gap:10px;align-items:center;padding:10px 12px;border-radius:10px;font-size:13px}
   .ct-row:nth-child(odd){background:var(--bg)}
-  .ct-row>span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .ct-row .ct-time{color:var(--mut);font-size:11px}
-  .ct-row .ct-px{text-align:right;font-weight:600}
-  .ct-row .cv{text-align:right;font-size:13px;font-weight:700}
-  .ct-row .tl-side{font-weight:800}
+  .ct-row .ct-time{color:var(--mut);font-size:11px;white-space:nowrap}
+  .ct-row .ct-px{font-weight:600;white-space:nowrap}
+  .ct-row .cv{font-size:13px;font-weight:700;white-space:nowrap}
+  .ct-row .tl-side{font-weight:800;white-space:nowrap}
+  @media(max-width:560px){.ct-row,.race-row{grid-template-columns:1fr 1fr;gap:4px 10px}}
   /* status strip */
   .status{display:flex;gap:26px;flex-wrap:wrap;color:var(--mut);font-size:13px;padding:14px 4px 0}.status b{color:var(--ink)}
   footer{color:var(--mut);font-size:12px;margin-top:22px;padding:0 4px}
