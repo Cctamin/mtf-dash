@@ -103,8 +103,8 @@
   .calcell{min-width:26px;height:26px;padding:0 4px;border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:9px;color:#fff;font-weight:700}
   .col-r{display:flex;flex-direction:column;gap:18px}
   /* 추세 */
-  .trendrow{display:flex;justify-content:space-between;align-items:center;padding:11px 2px;border-bottom:1px solid var(--line);font-size:14px}
-  .trendrow:last-child{border-bottom:0}.trendrow .k{color:var(--mut)}
+  .trendrow{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;padding:11px 2px;border-bottom:1px solid var(--line);font-size:14px}
+  .trendrow:last-child{border-bottom:0}.trendrow .k{color:var(--mut);flex-shrink:0}.trendrow .v{text-align:right}
   .trend{font-weight:800}.trend.up{color:var(--up)}.trend.down{color:var(--down)}.trend.neutral{color:var(--mut)}
   .trendnote{font-size:11px;color:var(--mut);margin-top:10px;line-height:1.5}
   /* trade list */
@@ -395,9 +395,9 @@ function renderTrend(s1h){
   const ge=document.getElementById('gateStatus');
   if(ge){
     const d=tc['1d']; let txt,cls;
-    if(d==='bullish'){txt='🟢 long 진입 허용';cls='up';}
-    else if(d==='bearish'){txt='🔴 short 진입 허용';cls='down';}
-    else{txt='⏸ 신규진입 대기 (flat)';cls='neutral';}
+    if(d==='bullish'){txt='🟢 long 허용';cls='up';}
+    else if(d==='bearish'){txt='🔴 short 허용';cls='down';}
+    else{txt='⏸ 진입 대기';cls='neutral';}
     ge.textContent=txt;ge.className='v trend '+cls;
   }
 }
