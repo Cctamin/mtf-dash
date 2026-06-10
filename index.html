@@ -117,6 +117,28 @@
   .race-row .rval{font-weight:700;white-space:nowrap}
   .race-row .rval.up{color:var(--up)}.race-row .rval.down{color:var(--down)}
   @media(max-width:600px){.ct-row,.race-row{grid-template-columns:1fr 1fr;gap:4px 10px}}
+  /* 지표 레이스 — 시상대 + 카드 */
+  .podium{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:18px}
+  .pod{border-radius:14px;padding:16px 12px;text-align:center;border:1px solid var(--line);background:var(--bg)}
+  .pod.p1{background:linear-gradient(160deg,#fff7e0,#fde9b8);border-color:#f5c860}
+  .pod.p2{background:linear-gradient(160deg,#f4f6f9,#e3e8ef);border-color:#cbd3de}
+  .pod.p3{background:linear-gradient(160deg,#fcefe2,#f6dcc4);border-color:#e7b486}
+  body.dark .pod.p1{background:linear-gradient(160deg,#3a3017,#2a2310)}body.dark .pod.p2{background:linear-gradient(160deg,#262b33,#1b2027)}body.dark .pod.p3{background:linear-gradient(160deg,#33261b,#241a12)}
+  .pod .pm{font-size:26px;line-height:1}
+  .pod .pn{font-weight:900;font-size:16px;margin-top:5px;color:var(--ink)}
+  .pod .pv{font-size:11px;color:var(--mut);margin-top:4px;font-weight:600}
+  .ind-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(176px,1fr));gap:12px}
+  .ind-card{border-radius:12px;padding:14px;background:var(--bg);border:1px solid var(--line);border-left:4px solid var(--mut)}
+  .ind-card.long{border-left-color:var(--up)}.ind-card.short{border-left-color:var(--down)}.ind-card.flat{border-left-color:var(--mut)}
+  .ind-top{display:flex;align-items:center;gap:8px}
+  .ind-rank{font-size:12px;font-weight:800;color:var(--mut)}
+  .ind-name{font-weight:800;font-size:15px;color:var(--ink)}
+  .ind-state{display:inline-block;margin-top:9px;padding:3px 11px;border-radius:999px;font-size:12px;font-weight:800}
+  .ind-state.long{background:var(--up-soft);color:var(--up)}.ind-state.short{background:var(--down-soft);color:var(--down)}.ind-state.flat{background:#eef1f6;color:var(--mut)}
+  body.dark .ind-state.flat{background:#232b36}
+  .ind-stats{display:flex;gap:18px;margin-top:13px}
+  .ind-stats .il{font-size:11px;color:var(--mut)}.ind-stats .iv{font-size:19px;font-weight:800;margin-top:2px;color:var(--ink)}
+  .ind-foot{font-size:11px;color:var(--mut);margin-top:11px}
   .status{display:flex;gap:24px;flex-wrap:wrap;color:var(--mut);font-size:13px;padding:4px 2px}.status b{color:var(--ink)}
   footer{color:var(--mut);font-size:12px;margin-top:8px;padding:0 2px}
   @media(max-width:720px){.app{grid-template-columns:1fr}.side{display:none}}
@@ -230,9 +252,10 @@
     <section class="page" data-page="race" style="display:none">
       <div class="panel" id="race">
         <h3>🏁 지표 레이스 <span style="font-size:12px;color:var(--mut);font-weight:400">(shadow · 관찰용)</span></h3>
-        <p class="psub" id="racemeta">24h hold · 승률 + expectancy(평균 net 수익) · expectancy 내림차순</p>
-        <div id="racelist" class="tradelist" style="max-height:none"><div class="tl-empty">레이스 데이터 대기 중</div></div>
-        <p class="psub" style="margin-top:10px">⚠ target/stop 먼저 + 24h timeout 청산. 표본 실질 독립수 적음. 라이브 주문 미반영(관찰용).</p>
+        <p class="psub" id="racemeta">24h hold · target/stop 청산 · 현재신호 + 승률 + 연승</p>
+        <div class="podium" id="racePodium"></div>
+        <div class="ind-cards" id="raceCards"><div class="tl-empty">레이스 데이터 대기 중</div></div>
+        <p class="psub" style="margin-top:14px">⚠ target+10%/stop−5% 먼저 + 24h timeout 청산. 8지표(TA 7 + similarity)가 같은 봉서 신호 → 24h 후 채점. 라이브 주문 미반영(관찰용).</p>
       </div>
     </section>
 
@@ -386,26 +409,45 @@ function renderStats(s1h){
     cell('최근',fmtPct(lastRet),lastRet>=0?'up':'down');
 }
 function renderRace(race){
-  const host=document.getElementById('racelist'); if(!host)return;
+  const host=document.getElementById('raceCards'); if(!host)return;
+  const pod=document.getElementById('racePodium');
   const meta=document.getElementById('racemeta');
-  const agg=(race&&race.aggregate)||{};
-  const names=Object.keys(agg);
-  if(!names.length){host.innerHTML='<div class="tl-empty">레이스 데이터 대기 중 (sidecar 누적)</div>';return;}
+  // 신규 indicators 블록 우선, 없으면 구 aggregate 폴백.
+  let ind=(race&&race.indicators)||null;
+  if(!ind && race && race.aggregate){ ind={}; Object.keys(race.aggregate).forEach(n=>ind[n]={...race.aggregate[n],current:0,streak:0}); }
+  if(!ind){ host.innerHTML='<div class="tl-empty">레이스 데이터 대기 중 (sidecar 누적)</div>'; if(pod)pod.innerHTML=''; return; }
   if(meta){
     const hold=race.hold_hours!=null?race.hold_hours:24;
-    meta.textContent=`${hold}h hold · 해결 ${race.ledger_count||0}거래 · 대기 ${race.pending_count||0} · slippage ${race.slippage_bps||0}bps · expectancy 내림차순`;
+    const tp=race.target_pct!=null?(race.target_pct*100).toFixed(0):'10', sp=race.stop_pct!=null?(race.stop_pct*100).toFixed(0):'-5';
+    meta.textContent=`${hold}h hold · target +${tp}% / stop ${sp}% · 해결 ${race.ledger_count||0}거래 · 대기 ${race.pending_count||0}`;
   }
-  const rows=names.map(n=>({name:n,...agg[n]})).sort((a,b)=>Number(b.expectancy)-Number(a.expectancy));
+  const hasData=(race.ledger_count||0)>0;
+  const rows=Object.keys(ind).map(n=>({name:n,...ind[n]}));
+  // 정렬: 거래있는것 우선 → expectancy → 승률 → 이름
+  rows.sort((a,b)=> ((b.trades>0)-(a.trades>0)) || (Number(b.expectancy)-Number(a.expectancy)) || (Number(b.win_rate)-Number(a.win_rate)) || a.name.localeCompare(b.name));
+  const stateOf=c=>c>0?['🟢 롱 포지션','long']:c<0?['🔴 숏 포지션','short']:['⏸ 진입 대기중','flat'];
+  // 시상대 1·2·3위
+  if(pod){
+    const medals=['🥇','🥈','🥉'];
+    pod.innerHTML=rows.slice(0,3).map((r,i)=>
+      `<div class="pod p${i+1}"><div class="pm">${medals[i]}</div><div class="pn">${r.name}</div>`+
+      `<div class="pv">${hasData?('승률 '+Number(r.win_rate).toFixed(0)+'% · exp '+(r.expectancy>=0?'+':'')+Number(r.expectancy).toFixed(2)+'%'):'데이터 누적 중'}</div></div>`
+    ).join('');
+  }
+  // 지표 카드
   host.innerHTML=rows.map((r,i)=>{
-    const exp=Number(r.expectancy||0), sumr=Number(r.sum_return||0), wr=Number(r.win_rate||0);
-    const expCls=exp>=0?'up':'down', sumCls=sumr>=0?'up':'down';
-    const rank=i===0?'🥇':i===1?'🥈':i===2?'🥉':(i+1)+'.';
-    return `<div class="race-row">`+
-      `<span class="rname">${rank} ${r.name}</span>`+
-      `<span class="rcell">${r.trades}건</span>`+
-      `<span class="rcell">승률 ${wr.toFixed(0)}%</span>`+
-      `<span class="rval ${expCls}">exp ${(exp>=0?'+':'')+exp.toFixed(3)}%</span>`+
-      `<span class="rval ${sumCls}">${(sumr>=0?'+':'')+sumr.toFixed(1)}%</span>`+
+    const [lbl,cls]=stateOf(Number(r.current||0));
+    const st=Number(r.streak||0);
+    const streakTxt=st>0?('🔥 '+st+'연승'):st<0?('💧 '+(-st)+'연패'):'—';
+    const exp=Number(r.expectancy||0);
+    return `<div class="ind-card ${cls}">`+
+      `<div class="ind-top"><span class="ind-rank">#${i+1}</span><span class="ind-name">${r.name}</span></div>`+
+      `<div class="ind-state ${cls}">${lbl}</div>`+
+      `<div class="ind-stats">`+
+        `<div><div class="il">승률</div><div class="iv">${r.trades>0?Number(r.win_rate).toFixed(0)+'%':'—'}</div></div>`+
+        `<div><div class="il">연승/패</div><div class="iv" style="font-size:15px">${streakTxt}</div></div>`+
+      `</div>`+
+      `<div class="ind-foot">${r.trades||0}거래 · exp ${(exp>=0?'+':'')+exp.toFixed(2)}%</div>`+
     `</div>`;
   }).join('');
 }
