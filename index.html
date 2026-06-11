@@ -639,13 +639,13 @@ function renderRace(race){
     const det=Array.isArray(r.trades_detail)?r.trades_detail:[];
     const open=raceOpen.has(r.name);
     const sideTxt=s=>s==='long'?'롱':s==='short'?'숏':'—';
-    const rsnTxt=x=>({timeout:'⏱ 시간만료',take_profit:'🎯 익절',stop_loss:'🛑 손절'})[x]||(x||'—');
+    const rsnTxt=x=>({take_profit:'🎯 익절',stop_loss:'🛑 손절'})[x]||'';  // timeout = 생략(노이즈)
     const trdRows=det.map((t,j)=>{
-      const w=!!t.win, ret=Number(t.return_pct||0);
+      const w=!!t.win, ret=Number(t.return_pct||0), rsn=rsnTxt(t.reason);
       return `<div class="trd ${w?'w':'l'}">`+
         `<span class="trd-no">${det.length-j}</span>`+
         `<span class="trd-side ${t.side||'flat'}">${sideTxt(t.side)}</span>`+
-        `<span class="trd-rsn">${rsnTxt(t.reason)} · ${w?'승':'패'}</span>`+
+        `<span class="trd-rsn">${rsn?rsn+' · ':''}${w?'승':'패'}</span>`+
         `<span class="trd-ret ${w?'w':'l'}">${ret>=0?'+':''}${ret.toFixed(2)}%</span>`+
       `</div>`;
     }).join('');
