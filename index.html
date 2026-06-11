@@ -141,7 +141,17 @@
   .ind-foot{font-size:11px;color:var(--mut);margin-top:11px}
   .status{display:flex;gap:24px;flex-wrap:wrap;color:var(--mut);font-size:13px;padding:4px 2px}.status b{color:var(--ink)}
   footer{color:var(--mut);font-size:12px;margin-top:8px;padding:0 2px}
-  @media(max-width:720px){.app{grid-template-columns:1fr}.side{display:none}}
+  /* 모바일 햄버거 드로어: 사이드바를 숨기지 말고 슬라이드인 */
+  .navtoggle{display:none;align-items:center;justify-content:center;width:40px;height:40px;border:1px solid var(--line);border-radius:9px;background:var(--card);color:var(--ink);cursor:pointer;font-size:19px;flex:0 0 auto}
+  .navbackdrop{display:none}
+  @media(max-width:720px){
+    .app{grid-template-columns:1fr}
+    .side{position:fixed;top:0;left:0;z-index:60;width:240px;height:100vh;transform:translateX(-100%);transition:transform .22s ease;box-shadow:2px 0 22px rgba(0,0,0,.28)}
+    .app.navopen .side{transform:translateX(0)}
+    .navtoggle{display:flex}
+    .navbackdrop{position:fixed;inset:0;background:rgba(0,0,0,.42);z-index:50}
+    .app.navopen .navbackdrop{display:block}
+  }
 </style>
 </head>
 <body>
@@ -154,13 +164,18 @@
       <a class="active" data-page="dashboard" onclick="showPage('dashboard');return false"><span class="ic">📊</span> 대시보드</a>
       <a data-page="capital" onclick="showPage('capital');return false"><span class="ic">💰</span> 자본 및 매매</a>
       <a data-page="race" onclick="showPage('race');return false"><span class="ic">🏁</span> 지표 레이스</a>
+      <a data-page="backtest" onclick="showPage('backtest');return false"><span class="ic">🧪</span> 백테스트</a>
     </nav>
   </aside>
+  <div class="navbackdrop" onclick="toggleNav()"></div>
 
   <!-- 메인 -->
   <main class="main">
     <div class="top">
-      <div><h2 id="pageTitle">대시보드</h2><div class="crumb" id="pageCrumb">밥값 · 포지션 · 추세 · 차트</div></div>
+      <div style="display:flex;align-items:center;gap:12px">
+        <button class="navtoggle" onclick="toggleNav()" aria-label="메뉴 열기">☰</button>
+        <div><h2 id="pageTitle">대시보드</h2><div class="crumb" id="pageCrumb">밥값 · 포지션 · 추세 · 차트</div></div>
+      </div>
       <div class="hstat">
         <span class="badge-net">TESTNET · 모의자본</span>
         <span class="pill off" id="botPill"><span class="pdot"></span><span id="botStat">—</span></span>
@@ -204,6 +219,13 @@
           <div class="trendrow"><span class="k">4h 추세</span><span class="v trend neutral" id="trend4h">—</span></div>
           <div class="trendrow"><span class="k">1d 추세</span><span class="v trend neutral" id="trend1d">—</span></div>
           <div class="trendrow"><span class="k">🚦 게이트</span><span class="v trend neutral" id="gateStatus">—</span></div>
+        </div>
+        <div class="card">
+          <div class="ci b2">🛰</div>
+          <div class="ck">현재 신호 (raw → regime)</div>
+          <div class="trendrow"><span class="k">raw 신호</span><span class="v trend neutral" id="sigRaw">—</span></div>
+          <div class="trendrow"><span class="k">게이트 결정</span><span class="v trend neutral" id="sigGated">—</span></div>
+          <div class="trendrow"><span class="k">상태</span><span class="v trend neutral" id="sigState">—</span></div>
         </div>
       </div>
 
@@ -259,6 +281,38 @@
       </div>
     </section>
 
+    <section class="page" data-page="backtest" style="display:none">
+      <div class="panel" id="backtest">
+        <h3>🧪 백테스트 <span style="font-size:12px;color:var(--mut);font-weight:400">(로컬 백엔드 · 격리 샌드박스)</span></h3>
+        <p class="psub">고정 fixture로 main.py 백테스트 실행. <b>읽기전용</b> — 봇/실 reports/ 0접촉(격리 sandbox서 실행). 한 번에 1개만.</p>
+        <div id="btForm" style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin:12px 0">
+          <label>Fixture<br><select id="btFixture"></select></label>
+          <label>Timeframe<br><select id="btTf"></select></label>
+          <label>Side<br><select id="btSide"></select></label>
+          <label>Pattern len<br><input id="btPL" type="number" value="60" min="5" max="400" style="width:80px"></label>
+          <label>Top-K<br><input id="btTK" type="number" value="30" min="1" max="200" style="width:80px"></label>
+          <label>Slippage bps<br><input id="btSlip" type="number" value="0" min="0" max="100" step="0.5" style="width:80px"></label>
+          <button id="btRun" onclick="runBacktest()" style="padding:8px 18px;cursor:pointer">실행 ▶</button>
+        </div>
+        <p class="psub" id="btStatus">백엔드 미연결 시 비활성(로컬 FastAPI 필요).</p>
+        <div id="btResult"></div>
+        <p class="psub" style="margin-top:14px">⚠ 단일 fixture(in-sample) 결과 = 연구용 참고. OOS/walk-forward 아님.</p>
+      </div>
+
+      <div class="panel" id="harness" style="margin-top:16px">
+        <h3>🔬 OOS walk-forward 하네스 <span style="font-size:12px;color:var(--mut);font-weight:400">(과최적화 검증)</span></h3>
+        <p class="psub">train/test 분할 OOS 검증. <b>positive_windows</b>(양수 윈도우 비율)가 신뢰지표 — magnitude 아님. 격리 sandbox, 봇 0접촉. 수분 소요.</p>
+        <div id="hForm" style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin:12px 0">
+          <label>하네스<br><select id="hId" onchange="onHarnessChange()"></select></label>
+          <span id="hFixtureWrap"><label>Fixture<br><select id="hFixture"></select></label></span>
+          <span id="hParams" style="display:flex;gap:10px"></span>
+          <button id="hRun" onclick="runHarness()" style="padding:8px 18px;cursor:pointer">실행 ▶</button>
+        </div>
+        <p class="psub" id="hStatus">백엔드 미연결 시 비활성.</p>
+        <div id="hResult"></div>
+      </div>
+    </section>
+
     <footer>MTF Similarity Trend System · public dashboard (read-only, redacted) · auto-refresh 10s</footer>
   </main>
 </div>
@@ -282,13 +336,16 @@ const PAGES={
   dashboard:['대시보드','밥값 · 포지션 · 추세 · 차트'],
   capital:['자본 및 매매','equity · 매매기록 · 통계 · 캘린더'],
   race:['지표 레이스','shadow 관찰 · 라이브 주문 미반영'],
+  backtest:['백테스트','로컬 백엔드 · 격리 샌드박스 실행'],
 };
+function toggleNav(){ const a=document.querySelector('.app'); if(a)a.classList.toggle('navopen'); }
 function showPage(p){
   if(!PAGES[p])p='dashboard';
   document.querySelectorAll('.page').forEach(s=>{s.style.display=(s.dataset.page===p)?'flex':'none';});
   document.querySelectorAll('.nav a').forEach(a=>a.classList.toggle('active',a.dataset.page===p));
   document.getElementById('pageTitle').textContent=PAGES[p][0];
   document.getElementById('pageCrumb').textContent=PAGES[p][1];
+  const app=document.querySelector('.app'); if(app)app.classList.remove('navopen'); // 모바일: 페이지 선택 시 드로어 닫기
   try{localStorage.setItem('page',p);}catch(e){}
 }
 
@@ -316,6 +373,19 @@ function trendLabel(st){
   if(s==='bearish'||s==='down')return['하락 ▼','down'];
   if(s==='neutral'||s==='flat'||s==='sideways')return['중립 –','neutral'];
   return['—','neutral'];
+}
+function renderSignal(s1h){
+  const sg=s1h&&s1h.signal;
+  const set=(id,txt,cls)=>{const e=document.getElementById(id);if(e){e.textContent=txt;e.className='v trend '+(cls||'neutral');}};
+  if(!sg){ set('sigRaw','—'); set('sigGated','—'); set('sigState','데이터 없음 (다음 봉마감 후)'); return; }
+  const rl=sg.long_signal_raw, rs=sg.short_signal_raw;
+  set('sigRaw', rl?'롱 ▲':(rs?'숏 ▼':'무신호 –'), rl?'up':(rs?'down':'neutral'));
+  const gl=sg.long_signal, gs=sg.short_signal;
+  set('sigGated', gl?'롱 진입':(gs?'숏 진입':'대기 (flat)'), gl?'up':(gs?'down':'neutral'));
+  const d=sg.regime_daily_trend||'?';
+  if(sg.regime_suppressed) set('sigState','🚫 신호 떴으나 regime 억제 ('+d+')','down');
+  else if(gl||gs) set('sigState','✅ 신호 허용 → 진입','up');
+  else set('sigState','무신호 (일봉 '+d+')','neutral');
 }
 function renderTrend(s1h){
   const tc=s1h?.trend_context||{};
@@ -345,7 +415,7 @@ function renderTrades(s1h){
       return `<div class="ct-row">`+
         `<span class="ct-time">${fmtT(Date.parse(t.exit_time))}</span>`+
         `<span class="tl-side ${cls}">${sideLabel}</span>`+
-        `<span class="ct-px">${fmtNum(t.entry_price)}→${fmtNum(t.exit_price)}</span>`+
+        `<span class="ct-px">${fmtNum(t.entry_price)}→${t.exit_approx?'≈':''}${fmtNum(t.exit_price)}</span>`+
         `<span class="cv ${cls}">${fmtPct(ret)}</span>`+
         `<span class="cv ${cls}">${(pnl>=0?'+':'')+pnl.toFixed(2)}</span>`+
       `</div>`;
@@ -499,8 +569,8 @@ function renderEquity(s1h){
     +`<div class="eqmeta"><span>구간 ${fmtPct(chg)}</span><span>저 ${fmtNum(min)} · 고 ${fmtNum(max)}</span></div>`;
 }
 async function load(){
-  const s1hRemote = DATA_URL_1H?await fetchJSON(DATA_URL_1H):null;
-  const s1h = s1hRemote || await fetchJSON('public_state_1h.json');
+  // 로컬 백엔드(/api) 우선 → GitHub raw → 상대경로 파일 순. 셋 다 폴백 유지.
+  const s1h = await fetchJSON('/api/state') || (DATA_URL_1H?await fetchJSON(DATA_URL_1H):null) || await fetchJSON('public_state_1h.json');
   const acct=s1h;
   const err=document.getElementById('err');
   if(!acct){err.style.display='block';err.textContent='⚠ public_state_1h.json 없음 — 1h 봇 가동/경로 확인';}
@@ -531,12 +601,13 @@ async function load(){
   }
   setSys('1h',s1h);
   renderTrend(s1h);
+  renderSignal(s1h);
   renderTrades(s1h);
   renderEquity(s1h);
   renderHolding(s1h);
   renderStats(s1h);
   renderCalendar(s1h);
-  const race = (DATA_URL_RACE?await fetchJSON(DATA_URL_RACE):null) || await fetchJSON('../reports/indicator_race/summary.json');
+  const race = await fetchJSON('/api/race') || (DATA_URL_RACE?await fetchJSON(DATA_URL_RACE):null) || await fetchJSON('../reports/indicator_race/summary.json');
   renderRace(race);
 
   const bps=(s1h&&s1h.price_series)||[];
@@ -556,10 +627,161 @@ async function load(){
     } else { posret.textContent='—'; posret.className='cv posret'; }
   }
 }
+// ── 백테스트(로컬 백엔드 전용) ──
+let _btPolling=false;
+async function loadBacktestOpts(){
+  const o=await fetchJSON('/api/backtest/options');
+  const st=document.getElementById('btStatus'), btn=document.getElementById('btRun');
+  if(!o){ if(st)st.textContent='⚠ 백엔드 미연결 — 로컬 FastAPI(127.0.0.1:8787)서 열어야 활성. 정적 호스팅선 비활성.'; if(btn)btn.disabled=true; return; }
+  const fill=(id,arr,sel)=>{const e=document.getElementById(id);if(!e)return;e.innerHTML=arr.map(v=>`<option ${v===sel?'selected':''}>${v}</option>`).join('');};
+  fill('btFixture',o.fixtures,'btc_4h'); fill('btTf',o.timeframes,'4h'); fill('btSide',o.sides,'both');
+  if(btn)btn.disabled=false;
+  if(st)st.textContent='준비됨. 파라미터 선택 후 실행 ▶ '+(o.busy?'(⏳ 다른 실행 진행 중)':'');
+}
+async function runBacktest(){
+  if(_btPolling)return;
+  const num=id=>Number(document.getElementById(id).value);
+  const body={fixture:document.getElementById('btFixture').value,timeframe:document.getElementById('btTf').value,side:document.getElementById('btSide').value,pattern_length:num('btPL'),top_k:num('btTK'),slippage_bps:num('btSlip')};
+  const st=document.getElementById('btStatus'), btn=document.getElementById('btRun');
+  st.textContent='⏳ 시작 중...'; btn.disabled=true;
+  let r; try{ r=await fetch('/api/backtest',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body)}); }
+  catch(e){ st.textContent='⚠ 백엔드 연결 실패'; btn.disabled=false; return; }
+  if(r.status===409){ st.textContent='⏳ 이미 백테스트 실행 중 — 잠시 후 다시'; btn.disabled=false; return; }
+  if(!r.ok){ st.textContent='⚠ 시작 실패 ('+r.status+')'; btn.disabled=false; return; }
+  const job_id=(await r.json()).job_id;
+  _btPolling=true; const t0=Date.now();
+  watchJob(job_id,
+    line=>{ st.textContent='⏳ job '+job_id+' ('+Math.round((Date.now()-t0)/1000)+'s) · '+line; },
+    j=>{ _btPolling=false; btn.disabled=false;
+      if(j.status==='error'){ st.textContent='🔴 실패: '+String(j.error||'').slice(0,200); document.getElementById('btResult').innerHTML=''; return; }
+      st.textContent='✅ 완료 (job '+job_id+', '+Math.round((Date.now()-t0)/1000)+'s)'; renderBacktest(j);
+    });
+}
+// job 진행 추적: WS(/ws/job) 진행라인 실시간 우선, 실패/끊김 시 폴링 폴백.
+function watchJob(jobId, onProgress, onDone){
+  let settled=false;
+  const finish=j=>{ if(settled)return; settled=true; onDone(j); };
+  const poll=()=>{
+    const t=async()=>{
+      const j=await fetchJSON('/api/job/'+jobId);
+      if(!j){ if(!settled)setTimeout(t,2000); return; }
+      if(j.progress_line)onProgress(j.progress_line);
+      if(j.status==='running'){ setTimeout(t,2000); return; }
+      finish(j);
+    }; t();
+  };
+  if(location.protocol==='file:'){ poll(); return; }
+  try{
+    const ws=new WebSocket((location.protocol==='https:'?'wss://':'ws://')+location.host+'/ws/job/'+jobId);
+    ws.onmessage=e=>{ let m; try{m=JSON.parse(e.data);}catch(_){return;}
+      if(m.event==='progress')onProgress(m.line);
+      else if(m.event==='done'){ try{ws.close();}catch(_){}finish(m); }
+      else if(m.event==='error'){ try{ws.close();}catch(_){} if(!settled)poll(); }
+    };
+    ws.onerror=()=>{ try{ws.close();}catch(_){} };
+    ws.onclose=()=>{ if(!settled)poll(); };  // 끊김/미연결 → 폴링 폴백
+  }catch(e){ poll(); }
+}
+const BT_KEYS=[['total_trades','거래수',0],['win_rate','승률',1],['avg_return','평균/거래',1],['cum_return','누적',1],['mdd','MDD',1],['sharpe_like','sharpe',2],['total_pnl','total PnL',1],['buy_hold','B&H',1]];
+function renderBacktest(j){
+  const s=j.summary||{}, p=j.params||{};
+  const pct=v=>(v>=0?'+':'')+(v*100).toFixed(2)+'%';
+  const row=([k,lbl,kind])=>{ if(s[k]==null)return ''; const v=s[k]; const disp=kind===0?v:(kind===2?v.toFixed(3):pct(v)); const noColor=['win_rate','total_trades'].includes(k); const col=noColor?'':(' class="'+(v>=0?'up':'down')+'"'); return `<tr><td style="padding:3px 10px 3px 0">${lbl}</td><td${col} style="text-align:right">${disp}</td></tr>`; };
+  document.getElementById('btResult').innerHTML=
+    `<p class="psub">${p.fixture} · ${p.timeframe} · side=${p.side} · PL${p.pattern_length}/K${p.top_k} · slip ${p.slippage_bps}bps</p>`
+    +`<table style="border-collapse:collapse;font-size:14px"><tbody>${BT_KEYS.map(row).join('')}</tbody></table>`;
+}
+// ── OOS walk-forward 하네스(로컬 백엔드 전용) ──
+let _hOpts=null, _hPolling=false;
+async function loadHarnessOpts(){
+  const o=await fetchJSON('/api/harness/options');
+  const st=document.getElementById('hStatus'), btn=document.getElementById('hRun');
+  if(!o){ if(st)st.textContent='⚠ 백엔드 미연결 — 로컬 FastAPI(127.0.0.1:8787) 필요.'; if(btn)btn.disabled=true; return; }
+  _hOpts=o;
+  const sel=document.getElementById('hId'); if(sel)sel.innerHTML=o.harnesses.map(h=>`<option value="${h.id}">${h.label}</option>`).join('');
+  if(btn)btn.disabled=false;
+  if(st)st.textContent='준비됨. 하네스 선택 후 실행 ▶ '+(o.busy?'(⏳ 다른 sandbox 작업 진행 중)':'');
+  onHarnessChange();
+}
+function onHarnessChange(){
+  if(!_hOpts)return;
+  const h=_hOpts.harnesses.find(x=>x.id===document.getElementById('hId').value); if(!h)return;
+  const fw=document.getElementById('hFixtureWrap'), fx=document.getElementById('hFixture');
+  if(h.fixture){ fw.style.display=''; fx.innerHTML=_hOpts.fixtures.map(v=>`<option ${v===h.default_fixture?'selected':''}>${v}</option>`).join(''); }
+  else { fw.style.display='none'; }
+  document.getElementById('hParams').innerHTML=Object.entries(h.params||{}).map(([n,p])=>`<label>${n}<br><input data-p="${n}" type="number" value="${p.default}" min="${p.lo}" max="${p.hi}" style="width:78px"></label>`).join('');
+}
+async function runHarness(){
+  if(_hPolling||!_hOpts)return;
+  const id=document.getElementById('hId').value, h=_hOpts.harnesses.find(x=>x.id===id);
+  const body={}; if(h.fixture)body.fixture=document.getElementById('hFixture').value;
+  document.querySelectorAll('#hParams input[data-p]').forEach(i=>{body[i.dataset.p]=Number(i.value);});
+  const st=document.getElementById('hStatus'), btn=document.getElementById('hRun');
+  st.textContent='⏳ 시작 중...'; btn.disabled=true;
+  let r; try{ r=await fetch('/api/harness/'+id,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(body)}); }
+  catch(e){ st.textContent='⚠ 백엔드 연결 실패'; btn.disabled=false; return; }
+  if(r.status===409){ st.textContent='⏳ 다른 sandbox 작업 실행 중 — 잠시 후 다시'; btn.disabled=false; return; }
+  if(!r.ok){ st.textContent='⚠ 시작 실패 ('+r.status+')'; btn.disabled=false; return; }
+  const job_id=(await r.json()).job_id; _hPolling=true; const t0=Date.now();
+  watchJob(job_id,
+    line=>{ st.textContent='⏳ job '+job_id+' ('+Math.round((Date.now()-t0)/1000)+'s) · '+line; },
+    j=>{ _hPolling=false; btn.disabled=false;
+      if(j.status==='error'){ st.textContent='🔴 실패: '+String(j.error||'').slice(0,200); document.getElementById('hResult').innerHTML=''; return; }
+      st.textContent='✅ 완료 (job '+job_id+', '+Math.round((Date.now()-t0)/1000)+'s)'; renderHarness(j);
+    });
+}
+function _oosRow(o){
+  const pct=v=>(v>=0?'+':'')+(v*100).toFixed(2)+'%';
+  return `trades=${o.trades} · win=${(o.win_rate*100).toFixed(1)}% · cum=${pct(o.cum_return)} · sharpe≈${o.sharpe_like}`+(o.positive_windows!=null?` · pos.win <b>${o.positive_windows}</b>`:'');
+}
+function renderHarness(j){
+  const s=j.summary||{}, el=document.getElementById('hResult');
+  if(s.oos_aggregate){ // wf_short
+    const o=Object.assign({},s.oos_aggregate,{positive_windows:s.positive_windows+'/'+s.n_windows});
+    el.innerHTML=`<p class="psub">${s.data} · train${s.train_days}/test${s.test_days}/step${s.step_days}d · ${s.n_windows} windows</p>`
+      +`<div style="font-size:14px;line-height:1.9"><b>OOS 집계:</b> ${_oosRow(o)}<br>`
+      +`<span style="color:var(--mut)">in-sample baseline: cum ${(s.in_sample_baseline.cum_return*100).toFixed(1)}% · sharpe ${s.in_sample_baseline.sharpe_like}</span></div>`
+      +`<p class="psub" style="margin-top:8px">⚠ magnitude(cum/sharpe)는 게이팅 차이로 부풀 수 있음 — <b>positive_windows ${s.positive_windows}/${s.n_windows}</b>(방향 일관성)이 신뢰지표.</p>`;
+  } else if(s.bear||s.bull){ // wf_regime {bear,bull}
+    const blk=(lbl,b)=>{ if(!b)return ''; const o=b.oos||b; return `<div style="margin:6px 0;font-size:14px"><b>${lbl}:</b> ${_oosRow(o)}</div>`; };
+    el.innerHTML=blk('🐻 bear 레짐',s.bear)+blk('🐂 bull 레짐',s.bull)
+      +`<p class="psub" style="margin-top:8px">⚠ bear+bull 양 레짐 pos.win 둘 다 높아야 regime-gated robust(준-OOS 강증거).</p>`;
+  } else if(Array.isArray(s.fixtures)){ // regime_gated (D1): fixtures[].strategies
+    const pct=v=>(v>=0?'+':'')+(v*100).toFixed(1)+'%';
+    const STR=['both','regime_gated','short_only','long_only'];
+    const fxBlk=f=>{
+      const m=f.meta||{};
+      const rows=STR.map(k=>{ const x=(f.strategies||{})[k]; if(!x)return ''; const hi=k==='regime_gated';
+        const cc=v=>`<td style="text-align:right;${v>=0?'color:var(--up,#1a7f37)':'color:var(--down,#c0392b)'}">${pct(v)}</td>`;
+        return `<tr style="${hi?'font-weight:700;background:rgba(26,127,55,.08)':''}"><td>${k}${hi?' ⭐':''}</td><td style="text-align:right">${x.total_trades|0}</td><td style="text-align:right">${(x.win_rate*100).toFixed(1)}%</td>${cc(x.cum_return)}<td style="text-align:right">${x.sharpe_like.toFixed(2)}</td>${cc(x.mdd)}</tr>`;
+      }).join('');
+      return `<div style="margin:10px 0"><b>${f.label}</b> <span class="psub">bars ${m.bars} · bull ${m.bull_pct}% / bear ${m.bear_pct}%</span>`
+        +`<table style="border-collapse:collapse;font-size:13px;width:100%;max-width:560px;margin-top:4px"><thead><tr style="color:var(--mut)"><th style="text-align:left">strategy</th><th>trades</th><th>win</th><th>cum</th><th>sharpe</th><th>mdd</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+    };
+    el.innerHTML=s.fixtures.map(fxBlk).join('')
+      +`<p class="psub" style="margin-top:8px">⭐ regime_gated = 하락확정→short만/상승확정→long만/중립→flat. bear+bull 둘 다 both·single-leg 압도해야 진짜 업그레이드. ⚠ in-sample(fixture당 단일run).</p>`;
+  } else {
+    el.innerHTML='<pre style="font-size:12px;overflow:auto;max-height:320px">'+JSON.stringify(s,null,2)+'</pre>';
+  }
+}
 // init
 let _startPage='dashboard'; try{_startPage=localStorage.getItem('page')||'dashboard';}catch(e){}
 showPage(_startPage);
-initTheme();load();setInterval(load,10000);
+initTheme();load();
+// 로컬 백엔드 있으면 websocket 실시간(캐시0). 없으면(GitHub Pages/파일열기) onclose 후 폴링만.
+function connectWS(){
+  if(location.protocol==='file:')return;
+  try{
+    const ws=new WebSocket((location.protocol==='https:'?'wss://':'ws://')+location.host+'/ws');
+    ws.onmessage=()=>load();
+    ws.onclose=()=>{setTimeout(connectWS,5000);};
+    ws.onerror=()=>{try{ws.close();}catch(e){}};
+  }catch(e){}
+}
+connectWS();
+loadBacktestOpts(); // 로컬 백엔드 있으면 백테스트 폼 활성(없으면 비활성 안내)
+loadHarnessOpts();  // OOS 하네스 폼 활성
+setInterval(load,10000); // 폴백 폴링(WS 끊김/GitHub Pages)
 </script>
 </body>
 </html>
