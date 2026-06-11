@@ -247,6 +247,26 @@
   .trd .trd-side.flat{color:var(--mut);background:var(--bg2)}
   .trd .trd-rsn{color:var(--mut);font-size:10.5px}
   .trd .trd-ret{font-weight:800;text-align:right}.trd .trd-ret.w{color:var(--up)}.trd .trd-ret.l{color:var(--down)}
+  /* 자산 배분 도넛 */
+  .alloc{display:flex;gap:34px;align-items:center;flex-wrap:wrap;margin-top:8px}
+  .alloc-donut{position:relative;width:230px;height:230px;flex:0 0 auto}
+  .donut{width:100%;height:100%;overflow:visible}
+  .donut circle{fill:none;stroke-width:4.4;transition:stroke-dasharray .7s cubic-bezier(.2,.7,.2,1);stroke-linecap:butt}
+  .donut .track{stroke:var(--bg2)}
+  .donut-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;pointer-events:none}
+  .donut-center .dc-lbl{font-size:11px;color:var(--kicker);font-family:var(--mono);text-transform:uppercase;letter-spacing:2px}
+  .donut-center .dc-sub{font-size:13px;font-weight:700;font-family:var(--mono);margin-top:3px;color:var(--mut)}
+  .alloc-legend{flex:1 1 250px;display:flex;flex-direction:column;gap:9px;min-width:230px}
+  .lg-row{display:flex;flex-direction:column;gap:7px;padding:12px 14px;border-radius:11px;background:var(--bg2);border:1px solid var(--inst-line);
+        box-shadow:inset 3px 0 0 var(--lg-c,var(--pri));transition:transform .15s ease}
+  .lg-row:hover{transform:translateX(2px)}
+  .lg-head{display:flex;align-items:center;gap:11px}
+  .lg-dot{width:13px;height:13px;border-radius:4px;flex:0 0 auto;box-shadow:0 0 8px var(--lg-c)}
+  .lg-name{font-weight:700;font-size:14.5px;flex:1}
+  .lg-pct{font-family:var(--mono);font-weight:800;font-size:19px;font-variant-numeric:tabular-nums}
+  .lg-bar{height:5px;border-radius:3px;background:var(--line);overflow:hidden}
+  .lg-bar>i{display:block;height:100%;border-radius:3px;background:var(--lg-c);transition:width .7s cubic-bezier(.2,.7,.2,1)}
+  .alloc-upd{font-size:10.5px;color:var(--mut);font-family:var(--mono);margin-top:4px}
   .status{display:flex;gap:22px;flex-wrap:wrap;color:var(--mut);font-size:12px;padding:6px 4px;font-family:var(--mono)}.status b{color:var(--ink);font-family:var(--mono)}
   footer{color:var(--mut);font-size:11px;margin-top:8px;padding:0 4px;font-family:var(--mono);letter-spacing:-.1px}
   /* form controls */
@@ -279,6 +299,7 @@
       <span class="lbl">메뉴</span>
       <a class="active" data-page="dashboard" onclick="showPage('dashboard');return false"><span class="ic">📊</span> 대시보드</a>
       <a data-page="capital" onclick="showPage('capital');return false"><span class="ic">💰</span> 자본 및 매매</a>
+      <a data-page="portfolio" onclick="showPage('portfolio');return false"><span class="ic">💼</span> 자본 상태</a>
       <a data-page="race" onclick="showPage('race');return false"><span class="ic">🏁</span> 지표 레이스</a>
       <a data-page="backtest" onclick="showPage('backtest');return false"><span class="ic">🧪</span> 백테스트</a>
     </nav>
@@ -396,6 +417,22 @@
       </div>
     </section>
 
+    <!-- ═══ 페이지: 자본 상태 (자산 배분) ═══ -->
+    <section class="page" data-page="portfolio" style="display:none">
+      <div class="panel" id="portfolio">
+        <h3>💼 자산 배분 <span style="font-size:12px;color:var(--mut);font-weight:400">(비율만 · 금액 비공개)</span></h3>
+        <p class="psub">현금 · 비트코인 · 이더리움 · 주식 — 총자산 대비 비율. 금액은 로컬 입력, 웹엔 % 만 노출.</p>
+        <div class="alloc">
+          <div class="alloc-donut">
+            <svg class="donut" viewBox="0 0 42 42" id="allocDonut" aria-label="자산 배분 도넛"></svg>
+            <div class="donut-center"><div class="dc-lbl">자산</div><div class="dc-sub" id="allocCount">—</div></div>
+          </div>
+          <div class="alloc-legend" id="allocLegend"><div class="tl-empty">portfolio.json 대기 중</div></div>
+        </div>
+        <p class="psub" style="margin-top:16px">⚠ 금액 원본은 <code>config/portfolio_holdings.json</code>(로컬 전용). 변경 후 <code>scripts/portfolio_allocation.py</code> 재실행 → 비율 갱신. Upbit KRW 시세 기준 평가.</p>
+      </div>
+    </section>
+
     <!-- ═══ 페이지 3: 지표 레이스 ═══ -->
     <section class="page" data-page="race" style="display:none">
       <div class="panel" id="race">
@@ -447,6 +484,7 @@
 // ── 데이터 소스 ───────────────────────────────────
 const DATA_URL_1H = "https://raw.githubusercontent.com/Cctamin/mtf-dash-data/main/public_state_1h.json";
 const DATA_URL_RACE = "https://raw.githubusercontent.com/Cctamin/mtf-dash-data/main/indicator_race.json";
+const DATA_URL_PORTFOLIO = "https://raw.githubusercontent.com/Cctamin/mtf-dash-data/main/portfolio.json";
 const LEVERAGE = 5;
 const CHART_H = 460;
 // ───────────────────────────────────────────────────
@@ -461,6 +499,7 @@ async function fetchLivePrice(){try{const r=await fetch('https://api.exchange.co
 const PAGES={
   dashboard:['대시보드','밥값 · 포지션 · 추세 · 차트'],
   capital:['자본 및 매매','equity · 매매기록 · 통계 · 캘린더'],
+  portfolio:['자본 상태','자산 배분 비율 · 금액 비공개 (로컬 입력)'],
   race:['지표 레이스','shadow 관찰 · 라이브 주문 미반영'],
   backtest:['백테스트','로컬 백엔드 · 격리 샌드박스 실행'],
 };
@@ -718,6 +757,30 @@ function renderEquity(s1h){
     +`<polyline points="${pts}" fill="none" stroke="${col}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/></svg>`
     +`<div class="eqmeta"><span>구간 ${fmtPct(chg)}</span><span>저 ${fmtNum(min)} · 고 ${fmtNum(max)}</span></div>`;
 }
+function renderPortfolio(port){
+  const svg=document.getElementById('allocDonut'), leg=document.getElementById('allocLegend');
+  if(!svg||!leg)return;
+  const assets=(port&&Array.isArray(port.assets))?port.assets:[];
+  const nz=assets.filter(a=>Number(a.pct)>0);
+  if(!nz.length){ svg.innerHTML=''; leg.innerHTML='<div class="tl-empty">portfolio.json 없음 — scripts/portfolio_allocation.py 실행</div>'; return; }
+  const R=15.915, C=21;
+  let cum=0;
+  const track=`<circle class="track" cx="${C}" cy="${C}" r="${R}"></circle>`;
+  const segs=nz.map(a=>{
+    const pct=Number(a.pct)||0, dash=`${pct} ${100-pct}`, off=100-cum+25; cum+=pct;
+    return `<circle cx="${C}" cy="${C}" r="${R}" stroke="${a.color}" stroke-dasharray="${dash}" stroke-dashoffset="${off}"></circle>`;
+  }).join('');
+  svg.innerHTML=track+segs;
+  const cnt=document.getElementById('allocCount'); if(cnt)cnt.textContent=nz.length+'종 배분';
+  const sorted=assets.slice().sort((a,b)=>Number(b.pct)-Number(a.pct));
+  leg.innerHTML=sorted.map(a=>{
+    const pct=Number(a.pct)||0;
+    return `<div class="lg-row" style="--lg-c:${a.color}">`+
+      `<div class="lg-head"><span class="lg-dot"></span><span class="lg-name">${a.label}</span><span class="lg-pct">${pct.toFixed(2)}%</span></div>`+
+      `<div class="lg-bar"><i style="width:${pct}%"></i></div>`+
+    `</div>`;
+  }).join('') + (port.updated_at?`<div class="alloc-upd">갱신 ${fmtT(Date.parse(port.updated_at))} · Upbit KRW 기준 · 금액 비공개</div>`:'');
+}
 async function load(){
   // 로컬 백엔드(/api) 우선 → GitHub raw → 상대경로 파일 순. 셋 다 폴백 유지.
   const s1h = await fetchJSON('/api/state') || (DATA_URL_1H?await fetchJSON(DATA_URL_1H):null) || await fetchJSON('public_state_1h.json');
@@ -759,6 +822,9 @@ async function load(){
   renderCalendar(s1h);
   const race = await fetchJSON('/api/race') || (DATA_URL_RACE?await fetchJSON(DATA_URL_RACE):null) || await fetchJSON('../reports/indicator_race/summary.json');
   renderRace(race);
+
+  const port = await fetchJSON('/portfolio.json') || (DATA_URL_PORTFOLIO?await fetchJSON(DATA_URL_PORTFOLIO):null) || await fetchJSON('portfolio.json');
+  renderPortfolio(port);
 
   const bps=(s1h&&s1h.price_series)||[];
   const lastC=bps.length?Number(bps[bps.length-1].slice(-1)[0]):null;
