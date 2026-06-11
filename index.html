@@ -87,25 +87,37 @@
   .page>*:nth-child(1){animation-delay:.02s}.page>*:nth-child(2){animation-delay:.08s}
   .page>*:nth-child(3){animation-delay:.14s}.page>*:nth-child(4){animation-delay:.2s}
   .page>*:nth-child(5){animation-delay:.26s}.page>*:nth-child(6){animation-delay:.32s}
-  /* 🍚 밥값 hero — 고정 그라데이션 게이지. 좌 −$110 빨강 → 중앙 $0 → 우 +$110 초록. 현재수익=막대 마커. */
-  .verdict{border-radius:22px;padding:30px 32px 46px;box-shadow:var(--shadow-lg);position:relative;overflow:hidden;text-align:center;color:#fff;
-           background:linear-gradient(90deg,#ef4444 0%,#f59e0b 27%,#fde047 50%,#84cc16 73%,#10b981 100%)}
-  .verdict::after{content:"";position:absolute;inset:0;pointer-events:none;
-           background:radial-gradient(120% 120% at 50% -20%, rgba(255,255,255,.28), transparent 45%),
-                      radial-gradient(100% 80% at 50% 130%, rgba(0,0,0,.22), transparent 55%);
-           mix-blend-mode:soft-light}
-  .verdict .vlabel,.verdict .vbig,.verdict .vamt{position:relative;z-index:2;text-shadow:0 1px 6px rgba(0,0,0,.45)}
-  .verdict .vbig{font-size:36px;font-weight:900;letter-spacing:-1px;line-height:1.12}
-  .verdict .vlabel{font-size:12px;font-weight:700;letter-spacing:.3px;margin-top:9px;opacity:.96}
-  .verdict .vamt{font-size:15px;font-weight:800;margin-top:7px;font-family:var(--mono)}
-  .verdict::before{content:"";position:absolute;left:50%;top:12px;bottom:28px;border-left:2px dashed rgba(255,255,255,.85);transform:translateX(-1px);z-index:1}
-  .vmark{position:absolute;top:10px;bottom:26px;width:6px;margin-left:-3px;background:#fff;border-radius:4px;
-         box-shadow:0 0 0 1.5px rgba(17,24,39,.35), 0 2px 10px rgba(0,0,0,.4);z-index:3;transition:left .6s cubic-bezier(.2,.7,.2,1)}
-  .vmark .vchip{position:absolute;bottom:-25px;left:50%;transform:translateX(-50%);background:#fff;color:#111827;
-         font-size:12px;font-weight:800;font-family:var(--mono);padding:4px 10px;border-radius:9px;white-space:nowrap;box-shadow:0 3px 10px rgba(0,0,0,.3)}
-  .vmark .vchip::before{content:"▲";position:absolute;top:-8px;left:50%;transform:translateX(-50%);font-size:10px;color:#fff;text-shadow:0 -1px 1px rgba(0,0,0,.15)}
-  .vends{position:absolute;left:0;right:0;bottom:11px;display:flex;justify-content:space-between;padding:0 18px;
-         font-size:10px;font-weight:700;font-family:var(--mono);color:rgba(255,255,255,.92);z-index:1}
+  /* 🍚 밥값 리미터 — 콕핏 텔레메트리 게이지. 좌 −$110 위험 → $0 → 우 +$110 한도(redline). 현재수익 = 발광 니들. 라이트/다크 동일 계기판. */
+  .verdict{border-radius:18px;padding:20px 24px 22px;position:relative;overflow:hidden;color:#eef2f8;
+           background:linear-gradient(158deg,#141925 0%,#0b0e16 62%,#070910 100%);
+           border:1px solid #232b3b;box-shadow:var(--shadow-lg), inset 0 1px 0 rgba(255,255,255,.05)}
+  .verdict::after{content:"";position:absolute;inset:0;pointer-events:none;opacity:.6;
+           background:radial-gradient(130% 90% at 88% -20%, rgba(124,77,255,.18), transparent 55%),
+                      repeating-linear-gradient(0deg, rgba(255,255,255,.018) 0 1px, transparent 1px 3px)}
+  .verdict>*{position:relative;z-index:2}
+  .vtop{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:18px}
+  .vid{display:flex;align-items:center;gap:9px;font-family:var(--mono);font-size:12px;font-weight:800;letter-spacing:2.6px;color:#9fb0c8;text-transform:uppercase}
+  .vdot{width:8px;height:8px;border-radius:50%;background:#10b981;box-shadow:0 0 0 3px rgba(16,185,129,.16), 0 0 12px #10b981;animation:vpulse 2.4s ease-in-out infinite}
+  @keyframes vpulse{0%,100%{opacity:1}50%{opacity:.35}}
+  #verdictBig{font-size:25px;font-weight:900;letter-spacing:-.7px;line-height:1.05;text-align:right;font-family:var(--ui);
+           background:linear-gradient(92deg,#ffffff,#c3cfe2);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .vtrack{position:relative;height:42px;border-radius:10px;margin-top:8px;
+           background:linear-gradient(90deg, rgba(239,68,68,.62) 0%, rgba(245,158,11,.42) 27%, rgba(120,135,160,.22) 50%, rgba(132,204,22,.42) 73%, rgba(16,185,129,.66) 100%);
+           border:1px solid rgba(255,255,255,.08); box-shadow:inset 0 2px 9px rgba(0,0,0,.55)}
+  .vtrack::before{content:"";position:absolute;inset:0;border-radius:10px;pointer-events:none;
+           background:repeating-linear-gradient(90deg, transparent 0 9.9%, rgba(0,0,0,.16) 9.9% 10%)}
+  .vzero{position:absolute;left:50%;top:-5px;bottom:-5px;border-left:2px dashed rgba(255,255,255,.45);transform:translateX(-1px);z-index:1}
+  .vredline{position:absolute;right:0;top:-7px;bottom:-7px;width:3px;background:linear-gradient(#ffffff,#10b981);border-radius:3px;
+           box-shadow:0 0 10px rgba(16,185,129,.9);z-index:3}
+  .vmark{position:absolute;top:-8px;bottom:-8px;width:4px;margin-left:-2px;background:#fff;border-radius:3px;
+           box-shadow:0 0 0 1px rgba(0,0,0,.45), 0 0 16px rgba(255,255,255,.75);z-index:4;transition:left .6s cubic-bezier(.2,.7,.2,1)}
+  .vmark .vchip{position:absolute;top:-32px;left:50%;transform:translateX(-50%);background:#fff;color:#0a0d14;
+           font-size:12px;font-weight:800;font-family:var(--mono);padding:4px 10px;border-radius:8px;white-space:nowrap;box-shadow:0 4px 14px rgba(0,0,0,.55)}
+  .vmark .vchip::after{content:"";position:absolute;bottom:-4px;left:50%;width:8px;height:8px;background:#fff;transform:translateX(-50%) rotate(45deg)}
+  .vends{display:flex;justify-content:space-between;margin-top:11px;
+           font-size:10.5px;font-weight:700;font-family:var(--mono);color:#8593a8}
+  .vends span:last-child{color:#10b981}
+  .verdict .vamt{font-size:12.5px;font-weight:700;margin-top:13px;font-family:var(--mono);color:#9aa6ba;text-align:center}
   /* ─── metric cards ─── */
   .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(232px,1fr));gap:16px}
   .card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px;position:relative;overflow:hidden;
@@ -247,13 +259,19 @@
 
     <!-- ═══ 페이지 1: 대시보드 ═══ -->
     <section class="page" data-page="dashboard">
-      <!-- 🍚 밥값 -->
+      <!-- 🍚 밥값 리미터 -->
       <div class="verdict" id="verdict">
-        <div class="vbig" id="verdictBig">—</div>
-        <div class="vlabel">🍚 이번 달 밥값 — 수익 vs Claude Code Max 비용 ($110)</div>
+        <div class="vtop">
+          <div class="vid"><span class="vdot"></span>🍚 밥값 리미터</div>
+          <div id="verdictBig">—</div>
+        </div>
+        <div class="vtrack">
+          <div class="vzero"></div>
+          <div class="vredline"></div>
+          <div class="vmark" id="vmark"><span class="vchip" id="vmarkLbl">—</span></div>
+        </div>
+        <div class="vends"><span>위험 −$110</span><span>$0 본전</span><span>한도 +$110</span></div>
         <div class="vamt" id="verdictAmt">—</div>
-        <div class="vmark" id="vmark"><span class="vchip" id="vmarkLbl">—</span></div>
-        <div class="vends"><span>−$110</span><span>$0</span><span>+$110</span></div>
       </div>
 
       <!-- 4 섹션 -->
@@ -640,7 +658,7 @@ async function load(){
   const thr=acct?.performance?.breakeven_threshold_usd??110;
   const win=profit>=thr;
   const v=document.getElementById('verdict');
-  document.getElementById('verdictBig').textContent=win?'🍚 이번달 밥값했음!':(profit>=0?'🍚 밥값 채우는 중':'밥값 못하고 있음 ㅠㅜ');
+  document.getElementById('verdictBig').textContent=win?'한도 달성 ✓':(profit>=0?'충전 중':'한도 미달');
   const sg=profit>=0?'+':'-';
   document.getElementById('verdictAmt').textContent=win?`${sg}$${Math.abs(profit).toFixed(2)} · 목표 $${thr} 달성 ✓ (Claude Code Max 본전!)`:`현재 ${sg}$${Math.abs(profit).toFixed(2)} / $${thr} · ${Math.max(0,profit/thr*100).toFixed(0)}% 채움`;
   // 고정 그라데이션(빨강 −110 ~ 노랑 $0 ~ 초록 +110). 현재 수익 = 막대 마커 위치로 표시.
