@@ -267,6 +267,24 @@
   .lg-bar{height:5px;border-radius:3px;background:var(--line);overflow:hidden}
   .lg-bar>i{display:block;height:100%;border-radius:3px;background:var(--lg-c);transition:width .7s cubic-bezier(.2,.7,.2,1)}
   .alloc-upd{font-size:10.5px;color:var(--mut);font-family:var(--mono);margin-top:4px}
+  /* 토픽별 비중 */
+  .tp-section{margin-top:26px;border-top:1px dashed var(--line);padding-top:20px}
+  .tp-title{font-size:11px;color:var(--kicker);font-family:var(--mono);text-transform:uppercase;letter-spacing:1.6px;font-weight:700;margin-bottom:14px}
+  .topics-wrap{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
+  .tp-card{background:var(--bg2);border:1px solid var(--inst-line);border-radius:12px;padding:15px 16px;
+        box-shadow:inset 3px 0 0 var(--tp-c,var(--pri));transition:transform .15s}
+  .tp-card:hover{transform:translateY(-2px)}
+  .tp-head{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
+  .tp-name{font-weight:800;font-size:15px}
+  .tp-pct{font-family:var(--mono);font-weight:800;font-size:20px;font-variant-numeric:tabular-nums;color:var(--tp-c)}
+  .tp-bar{display:flex;height:8px;border-radius:5px;overflow:hidden;background:var(--line);margin:11px 0 12px}
+  .tp-bar>i{height:100%;transition:width .7s cubic-bezier(.2,.7,.2,1)}
+  .tp-bar.empty{opacity:.4}
+  .tp-members{display:flex;flex-direction:column;gap:6px}
+  .tp-mrow{display:flex;align-items:center;gap:8px;font-size:12px}
+  .tp-mdot{width:9px;height:9px;border-radius:3px;flex:0 0 auto}
+  .tp-mname{flex:1;color:var(--ink)}
+  .tp-mpct{font-family:var(--mono);font-weight:700;color:var(--mut)}
   .status{display:flex;gap:22px;flex-wrap:wrap;color:var(--mut);font-size:12px;padding:6px 4px;font-family:var(--mono)}.status b{color:var(--ink);font-family:var(--mono)}
   footer{color:var(--mut);font-size:11px;margin-top:8px;padding:0 4px;font-family:var(--mono);letter-spacing:-.1px}
   /* form controls */
@@ -428,6 +446,10 @@
             <div class="donut-center"><div class="dc-lbl">자산</div><div class="dc-sub" id="allocCount">—</div></div>
           </div>
           <div class="alloc-legend" id="allocLegend"><div class="tl-empty">portfolio.json 대기 중</div></div>
+        </div>
+        <div class="tp-section">
+          <div class="tp-title">📦 토픽별 비중</div>
+          <div class="topics-wrap" id="allocTopics"></div>
         </div>
         <p class="psub" style="margin-top:16px">⚠ 금액 원본은 <code>config/portfolio_holdings.json</code>(로컬 전용). 변경 후 <code>scripts/portfolio_allocation.py</code> 재실행 → 비율 갱신. Upbit KRW 시세 기준 평가.</p>
       </div>
@@ -780,6 +802,27 @@ function renderPortfolio(port){
       `<div class="lg-bar"><i style="width:${pct}%"></i></div>`+
     `</div>`;
   }).join('') + (port.updated_at?`<div class="alloc-upd">갱신 ${fmtT(Date.parse(port.updated_at))} · Upbit KRW 기준 · 금액 비공개</div>`:'');
+
+  // 토픽별 비중 (코인/주식/현금)
+  const tw=document.getElementById('allocTopics');
+  if(tw){
+    const topics=(port&&Array.isArray(port.topics))?port.topics:[];
+    if(!topics.length){ tw.innerHTML='<div class="tl-empty">토픽 데이터 없음</div>'; }
+    else tw.innerHTML=topics.map(t=>{
+      const tpct=Number(t.pct)||0;
+      const mem=(t.members||[]).slice().sort((a,b)=>Number(b.pct)-Number(a.pct));
+      const bar=tpct>0
+        ? mem.map(m=>`<i style="width:${(Number(m.pct)/tpct*100)}%;background:${m.color}"></i>`).join('')
+        : '';
+      const rows=mem.map(m=>`<div class="tp-mrow"><span class="tp-mdot" style="background:${m.color}"></span>`+
+        `<span class="tp-mname">${m.label}</span><span class="tp-mpct">${(Number(m.pct)||0).toFixed(2)}%</span></div>`).join('');
+      return `<div class="tp-card" style="--tp-c:${t.color}">`+
+        `<div class="tp-head"><span class="tp-name">${t.topic}</span><span class="tp-pct">${tpct.toFixed(2)}%</span></div>`+
+        `<div class="tp-bar${tpct>0?'':' empty'}">${bar}</div>`+
+        `<div class="tp-members">${rows}</div>`+
+      `</div>`;
+    }).join('');
+  }
 }
 async function load(){
   // 로컬 백엔드(/api) 우선 → GitHub raw → 상대경로 파일 순. 셋 다 폴백 유지.
