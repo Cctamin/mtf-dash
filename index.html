@@ -807,8 +807,9 @@ function renderPortfolio(port){
   const tw=document.getElementById('allocTopics');
   if(tw){
     const topics=(port&&Array.isArray(port.topics))?port.topics:[];
-    const order=['코인','주식'];
-    const secs=order.map(name=>topics.find(t=>t.topic===name)||{topic:name,pct:0,color:(name==='코인'?'#f7931a':'#0ca678'),members:[]});
+    const order=['코인','주식','현금'];
+    const fallbackColor={'코인':'#f7931a','주식':'#0ca678','현금':'#5b5bd6'};
+    const secs=order.map(name=>topics.find(t=>t.topic===name)||{topic:name,pct:0,color:fallbackColor[name]||'#6b7384',members:[]});
     tw.innerHTML=secs.map(t=>{
       const tpct=Number(t.pct)||0;
       const mem=(t.members||[]).filter(m=>Number(m.pct)>0).sort((a,b)=>Number(b.pct)-Number(a.pct));
