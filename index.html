@@ -228,6 +228,25 @@
   .ind-stats{display:flex;gap:18px;margin-top:14px}
   .ind-stats .il{font-size:11px;color:var(--mut)}.ind-stats .iv{font-size:19px;font-weight:800;margin-top:2px;color:var(--ink);font-family:var(--mono)}
   .ind-foot{font-size:11px;color:var(--mut);margin-top:12px;font-family:var(--mono)}
+  /* 개별 거래 드릴다운 */
+  .ind-expand{margin-top:11px;width:100%;background:transparent;border:1px solid var(--inst-line);color:var(--kicker);
+        border-radius:8px;padding:6px 10px;font-family:var(--mono);font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;
+        cursor:pointer;transition:.15s;display:flex;align-items:center;justify-content:center;gap:6px}
+  .ind-expand:hover{border-color:var(--bracket);color:var(--ink)}
+  .ind-expand .caret{transition:transform .2s}
+  .ind-card.open .ind-expand .caret{transform:rotate(180deg)}
+  .ind-trades{display:none;margin-top:10px;flex-direction:column;gap:3px;max-height:260px;overflow-y:auto;
+        border-top:1px dashed var(--line);padding-top:10px}
+  .ind-card.open .ind-trades{display:flex}
+  .trd{display:grid;grid-template-columns:14px 38px 1fr auto;gap:8px;align-items:center;padding:6px 8px;border-radius:7px;background:var(--inst);
+        font-family:var(--mono);font-size:11.5px;box-shadow:inset 2px 0 0 var(--mut)}
+  .trd.w{box-shadow:inset 2px 0 0 var(--up)}.trd.l{box-shadow:inset 2px 0 0 var(--down)}
+  .trd .trd-no{color:var(--kicker);font-size:10px;text-align:right}
+  .trd .trd-side{font-weight:800;text-transform:uppercase;letter-spacing:.4px;font-size:10.5px;padding:2px 0;text-align:center;border-radius:5px}
+  .trd .trd-side.long{color:var(--up);background:var(--up-soft)}.trd .trd-side.short{color:var(--down);background:var(--down-soft)}
+  .trd .trd-side.flat{color:var(--mut);background:var(--bg2)}
+  .trd .trd-rsn{color:var(--mut);font-size:10.5px}
+  .trd .trd-ret{font-weight:800;text-align:right}.trd .trd-ret.w{color:var(--up)}.trd .trd-ret.l{color:var(--down)}
   .status{display:flex;gap:22px;flex-wrap:wrap;color:var(--mut);font-size:12px;padding:6px 4px;font-family:var(--mono)}.status b{color:var(--ink);font-family:var(--mono)}
   footer{color:var(--mut);font-size:11px;margin-top:8px;padding:0 4px;font-family:var(--mono);letter-spacing:-.1px}
   /* form controls */
@@ -617,7 +636,24 @@ function renderRace(race){
     const st=Number(r.streak||0);
     const streakTxt=st>0?('🔥 '+st+'연승'):st<0?('💧 '+(-st)+'연패'):'—';
     const exp=Number(r.expectancy||0);
-    return `<div class="ind-card ${cls}">`+
+    const det=Array.isArray(r.trades_detail)?r.trades_detail:[];
+    const open=raceOpen.has(r.name);
+    const sideTxt=s=>s==='long'?'롱':s==='short'?'숏':'—';
+    const rsnTxt=x=>({timeout:'⏱ 시간만료',take_profit:'🎯 익절',stop_loss:'🛑 손절'})[x]||(x||'—');
+    const trdRows=det.map((t,j)=>{
+      const w=!!t.win, ret=Number(t.return_pct||0);
+      return `<div class="trd ${w?'w':'l'}">`+
+        `<span class="trd-no">${det.length-j}</span>`+
+        `<span class="trd-side ${t.side||'flat'}">${sideTxt(t.side)}</span>`+
+        `<span class="trd-rsn">${rsnTxt(t.reason)} · ${w?'승':'패'}</span>`+
+        `<span class="trd-ret ${w?'w':'l'}">${ret>=0?'+':''}${ret.toFixed(2)}%</span>`+
+      `</div>`;
+    }).join('');
+    const expandBtn=det.length>0
+      ? `<button class="ind-expand" onclick="toggleRaceTrades('${r.name}')">개별 거래 ${det.length}건 <span class="caret">▾</span></button>`+
+        `<div class="ind-trades">${trdRows}</div>`
+      : '';
+    return `<div class="ind-card ${cls}${open?' open':''}">`+
       `<div class="ind-top"><span class="ind-rank">#${i+1}</span><span class="ind-name">${r.name}</span></div>`+
       `<div class="ind-state ${cls}">${lbl}</div>`+
       `<div class="ind-stats">`+
@@ -625,8 +661,15 @@ function renderRace(race){
         `<div><div class="il">연승/패</div><div class="iv" style="font-size:15px">${streakTxt}</div></div>`+
       `</div>`+
       `<div class="ind-foot">${r.trades||0}거래 · exp ${(exp>=0?'+':'')+exp.toFixed(2)}%</div>`+
+      expandBtn+
     `</div>`;
   }).join('');
+}
+const raceOpen=new Set();
+function toggleRaceTrades(name){
+  if(raceOpen.has(name))raceOpen.delete(name); else raceOpen.add(name);
+  const cards=document.querySelectorAll('#raceCards .ind-card');
+  cards.forEach(c=>{const n=c.querySelector('.ind-name'); if(n&&n.textContent===name)c.classList.toggle('open',raceOpen.has(name));});
 }
 function renderCalendar(s1h){
   const host=document.getElementById('calheat'); if(!host)return;
