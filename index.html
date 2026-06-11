@@ -392,6 +392,13 @@
           <div class="trendrow"><span class="k">게이트 결정</span><span class="v trend neutral" id="sigGated">—</span></div>
           <div class="trendrow"><span class="k">상태</span><span class="v trend neutral" id="sigState">—</span></div>
         </div>
+        <div class="card">
+          <div class="ci b2">🧪</div>
+          <div class="ck">4H 시스템 · DRY (주문 없음)</div>
+          <div class="trendrow"><span class="k">raw 신호</span><span class="v trend neutral" id="sig4hRaw">—</span></div>
+          <div class="trendrow"><span class="k">게이트 결정</span><span class="v trend neutral" id="sig4hGated">—</span></div>
+          <div class="trendrow"><span class="k">평가 시각</span><span class="v trend neutral" id="sig4hTime">—</span></div>
+        </div>
       </div>
 
       <!-- 차트 -->
@@ -507,6 +514,7 @@
 const DATA_URL_1H = "https://raw.githubusercontent.com/Cctamin/mtf-dash-data/main/public_state_1h.json";
 const DATA_URL_RACE = "https://raw.githubusercontent.com/Cctamin/mtf-dash-data/main/indicator_race.json";
 const DATA_URL_PORTFOLIO = "https://raw.githubusercontent.com/Cctamin/mtf-dash-data/main/portfolio.json";
+const DATA_URL_4H = "https://raw.githubusercontent.com/Cctamin/mtf-dash-data/main/public_state_4h.json";
 const LEVERAGE = 5;
 const CHART_H = 460;
 // ───────────────────────────────────────────────────
@@ -573,6 +581,20 @@ function renderSignal(s1h){
   if(sg.regime_suppressed) set('sigState','🚫 신호 떴으나 regime 억제 ('+d+')','down');
   else if(gl||gs) set('sigState','✅ 신호 허용 → 진입','up');
   else set('sigState','무신호 (일봉 '+d+')','neutral');
+}
+function renderDry4h(s4h){
+  const set=(id,txt,cls)=>{const e=document.getElementById(id);if(e){e.textContent=txt;e.className='v trend '+(cls||'neutral');}};
+  const sg=s4h&&s4h.signal;
+  if(!sg){ set('sig4hRaw','—'); set('sig4hGated','—'); set('sig4hTime','대기 (다음 4h 봉마감)'); return; }
+  const rl=sg.long_signal_raw, rs=sg.short_signal_raw;
+  set('sig4hRaw', rl?'롱 ▲':(rs?'숏 ▼':'무신호 –'), rl?'up':(rs?'down':'neutral'));
+  const gl=sg.long_signal, gs=sg.short_signal, d=sg.regime_daily_trend||'?';
+  if(sg.regime_suppressed) set('sig4hGated','🚫 억제 ('+d+')','down');
+  else if(gl) set('sig4hGated','롱 (DRY — 주문 안함)','up');
+  else if(gs) set('sig4hGated','숏 (DRY — 주문 안함)','down');
+  else set('sig4hGated','대기 ('+d+')','neutral');
+  const t=sg.evaluated_at_open_time?Date.parse(sg.evaluated_at_open_time):null;
+  set('sig4hTime', t?fmtT(t):'—','neutral');
 }
 function renderTrend(s1h){
   const tc=s1h?.trend_context||{};
@@ -876,6 +898,9 @@ async function load(){
 
   const port = await fetchJSON('/portfolio.json') || (DATA_URL_PORTFOLIO?await fetchJSON(DATA_URL_PORTFOLIO):null) || await fetchJSON('portfolio.json');
   renderPortfolio(port);
+
+  const s4h = await fetchJSON('/public_state_4h.json') || (DATA_URL_4H?await fetchJSON(DATA_URL_4H):null) || await fetchJSON('public_state_4h.json');
+  renderDry4h(s4h);
 
   const bps=(s1h&&s1h.price_series)||[];
   const lastC=bps.length?Number(bps[bps.length-1].slice(-1)[0]):null;
