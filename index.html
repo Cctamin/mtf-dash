@@ -296,6 +296,15 @@
   .mc-badge{display:inline-block;margin-top:9px;padding:3px 10px;border-radius:7px;font-size:11px;font-weight:800;font-family:var(--mono);
         background:color-mix(in srgb,var(--mc-c) 14%,transparent);color:var(--mc-c);border:1px solid color-mix(in srgb,var(--mc-c) 35%,transparent)}
   .mc-detail{font-size:11px;color:var(--mut);margin-top:9px;line-height:1.45}
+  /* 7일 스파크라인 */
+  .spark-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:13px}
+  .sp-card{background:var(--bg2);border:1px solid var(--inst-line);border-radius:12px;padding:13px 15px 10px;transition:transform .15s}
+  .sp-card:hover{transform:translateY(-2px)}
+  .sp-head{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin-bottom:6px}
+  .sp-name{font-size:10.5px;color:var(--kicker);font-weight:700;text-transform:uppercase;letter-spacing:1px;font-family:var(--mono)}
+  .sp-last{font-family:var(--mono);font-weight:800;font-size:15px;font-variant-numeric:tabular-nums}
+  .sp-delta{font-family:var(--mono);font-size:11px;font-weight:700}
+  .sp-card svg{display:block;width:100%;height:58px}
   .status{display:flex;gap:22px;flex-wrap:wrap;color:var(--mut);font-size:12px;padding:6px 4px;font-family:var(--mono)}.status b{color:var(--ink);font-family:var(--mono)}
   footer{color:var(--mut);font-size:11px;margin-top:8px;padding:0 4px;font-family:var(--mono);letter-spacing:-.1px}
   /* form controls */
@@ -480,6 +489,10 @@
         <h3>🌐 매크로 지표 보드 <span style="font-size:12px;color:var(--mut);font-weight:400" id="macroUpd">—</span></h3>
         <p class="psub">크립토 심리 · 거시 지수 · BTC 장기 구조 — 15분 자동 갱신 · 배지 = 자동 해석 (🔴과열 🟡주의 🟢중립 🔵공포/저평가)</p>
         <div class="mc-grid" id="macroGrid"><div class="tl-empty">macro.json 대기 중</div></div>
+        <div class="tp-section">
+          <div class="tp-title">📈 7일 추이</div>
+          <div class="spark-grid" id="macroCharts"></div>
+        </div>
       </div>
     </section>
 
@@ -618,6 +631,30 @@ function renderMacro(mac){
     `</div>`).join('');
   const u=document.getElementById('macroUpd');
   if(u&&mac.updated_at)u.textContent='갱신 '+fmtT(Date.parse(mac.updated_at));
+  // 7일 스파크라인
+  const cg=document.getElementById('macroCharts');
+  if(cg){
+    const cs=(mac&&Array.isArray(mac.charts))?mac.charts:[];
+    cg.innerHTML=cs.length?cs.map(c=>{
+      const pts=c.points||[]; if(pts.length<3)return '';
+      const W=250,H=58,P=4;
+      const mn=Math.min(...pts), mx=Math.max(...pts), rng=(mx-mn)||1;
+      const xy=pts.map((v,i)=>[P+i*(W-2*P)/(pts.length-1), H-P-(v-mn)/rng*(H-2*P)]);
+      const line=xy.map(p=>p[0].toFixed(1)+','+p[1].toFixed(1)).join(' ');
+      const area=`${P},${H-P} ${line} ${(W-P).toFixed(1)},${H-P}`;
+      const d=pts[0]!==0?((pts[pts.length-1]/pts[0]-1)*100):0;
+      const dTxt=(pts[0]>0&&pts[pts.length-1]>0)?((d>=0?'+':'')+d.toFixed(2)+'%'):'';
+      const [lx,ly]=xy[xy.length-1];
+      return `<div class="sp-card">`+
+        `<div class="sp-head"><span class="sp-name">${c.label}</span>`+
+        `<span><span class="sp-last">${c.last}</span> <span class="sp-delta" style="color:${d>=0?'var(--up)':'var(--down)'}">${dTxt}</span></span></div>`+
+        `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">`+
+        `<polygon points="${area}" fill="${c.color}" opacity="0.13"></polygon>`+
+        `<polyline points="${line}" fill="none" stroke="${c.color}" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"></polyline>`+
+        `<circle cx="${lx.toFixed(1)}" cy="${ly.toFixed(1)}" r="2.6" fill="${c.color}"></circle>`+
+        `</svg></div>`;
+    }).join(''):'<div class="tl-empty">차트 데이터 없음</div>';
+  }
 }
 function renderDry4h(s4h){
   const set=(id,txt,cls)=>{const e=document.getElementById(id);if(e){e.textContent=txt;e.className='v trend '+(cls||'neutral');}};
