@@ -296,11 +296,8 @@
   /* power law 차트 */
   .pl-chart{border:1px solid var(--inst-line);border-radius:12px;background:var(--bg2);padding:10px 8px 4px;overflow:hidden}
   .pl-chart svg{display:block;width:100%;height:auto}
-  .pl-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-top:11px}
-  .pl-stat{background:var(--bg2);border:1px solid var(--inst-line);border-radius:10px;padding:11px 13px;box-shadow:inset 3px 0 0 var(--pls-c,var(--mut))}
-  .pl-stat .k{font-size:10px;color:var(--kicker);font-weight:700;text-transform:uppercase;letter-spacing:1px;font-family:var(--mono)}
-  .pl-stat .v{font-size:17px;font-weight:800;font-family:var(--mono);font-variant-numeric:tabular-nums;margin-top:4px}
-  .pl-stat .s{font-size:10.5px;color:var(--mut);font-family:var(--mono);margin-top:3px}
+  .pl-stats{display:flex;flex-wrap:wrap;gap:6px 22px;margin-top:11px;font-family:var(--mono);font-size:13px;color:var(--mut)}
+  .pl-stats b{font-weight:800;font-variant-numeric:tabular-nums}
   .mc-label{font-size:10.5px;color:var(--kicker);font-weight:700;text-transform:uppercase;letter-spacing:1.1px;font-family:var(--mono)}
   .mc-val{font-size:25px;font-weight:800;font-family:var(--mono);font-variant-numeric:tabular-nums;letter-spacing:-.5px;margin-top:7px}
   .mc-badge{display:inline-block;margin-top:9px;padding:3px 10px;border-radius:7px;font-size:11px;font-weight:800;font-family:var(--mono);
@@ -677,7 +674,8 @@ function renderPowerLaw(pl){
   if(!pl||!Array.isArray(pl.points)||pl.points.length<10){host.innerHTML='<div class="tl-empty">powerlaw 데이터 없음</div>';return;}
   const W=720,H=300,L=52,R=14,T=14,B=26;
   const pts=pl.points;
-  const dMin=pts[0][0], dMax=pts[pts.length-1][0]+240; // 모델 240일 선행 연장
+  const gEp=Date.UTC(2009,0,3)/86400000;
+  const dMin=pts[0][0], dMax=Date.UTC(2031,0,1)/86400000-gEp; // 모델 2030년 말까지 연장
   const fair=d=>pl.a*Math.pow(d,pl.n);
   let pMin=Infinity,pMax=-Infinity;
   pts.forEach(p=>{pMin=Math.min(pMin,p[1]);pMax=Math.max(pMax,p[1]);});
@@ -701,12 +699,17 @@ function renderPowerLaw(pl){
     grid+=`<line x1="${L}" y1="${y}" x2="${W-R}" y2="${y}" stroke="currentColor" opacity="0.08"></line>`+
           `<text x="${L-6}" y="${(+y+3.5).toFixed(1)}" text-anchor="end" font-size="9.5" font-family="monospace" fill="currentColor" opacity="0.5">${fmtY(v)}</text>`;});
   // x 그리드 = 연도
-  const gEpoch=Date.UTC(2009,0,3)/86400000;
-  for(let yr=2015;yr<=2028;yr++){
-    const d=Date.UTC(yr,0,1)/86400000-gEpoch;
+  for(let yr=2015;yr<=2031;yr++){
+    const d=Date.UTC(yr,0,1)/86400000-gEp;
     if(d<dMin||d>dMax)continue; const x=X(d).toFixed(1);
     grid+=`<line x1="${x}" y1="${T}" x2="${x}" y2="${H-B}" stroke="currentColor" opacity="0.06"></line>`+
           ((yr%2===1)?`<text x="${x}" y="${H-8}" text-anchor="middle" font-size="9.5" font-family="monospace" fill="currentColor" opacity="0.5">${yr}</text>`:'');}
+  // 반감기 수직선 (2028은 예상일)
+  [[2016,6,9,''],[2020,4,11,''],[2024,3,20,''],[2028,3,17,'예정']].forEach(([y,mo,dd,tag])=>{
+    const d=Date.UTC(y,mo,dd)/86400000-gEp;
+    if(d<dMin||d>dMax)return; const x=X(d).toFixed(1);
+    grid+=`<line x1="${x}" y1="${T}" x2="${x}" y2="${H-B}" stroke="#14b8a6" stroke-width="1" stroke-dasharray="3,4" opacity="0.55"></line>`+
+          `<text x="${x}" y="${T+9}" text-anchor="middle" font-size="8.5" font-family="monospace" fill="#14b8a6" opacity="0.85">⛏${tag||''}</text>`;});
   const last=pts[pts.length-1];
   host.innerHTML=`<svg viewBox="0 0 ${W} ${H}" style="color:var(--ink)">`+grid+
     `<polygon points="${band}" fill="#8b5cf6" opacity="0.10"></polygon>`+
@@ -716,20 +719,18 @@ function renderPowerLaw(pl){
     `<polyline points="${price}" fill="none" stroke="#ef9f2b" stroke-width="1.9" stroke-linejoin="round"></polyline>`+
     `<circle cx="${X(last[0]).toFixed(1)}" cy="${Y(last[1]).toFixed(1)}" r="3.4" fill="#ef9f2b" stroke="#fff" stroke-width="1.2"></circle>`+
   `</svg>`;
-  // 당일 기준 현재/중심/상단/하단 가격
+  // 당일 기준 현재/중심/상단/하단 — 간단 한 줄 (상단=초록, 하단=빨강)
   const st=document.getElementById('plStats');
   if(st){
-    const gEp=Date.UTC(2009,0,3)/86400000;
     const dToday=Date.now()/86400000-gEp;
     const f=fair(dToday), hi=f*pl.band_high, lo=f*pl.band_low;
     const F=v=>'$'+Math.round(v).toLocaleString();
     const draw=px=>{
-      const ratio=px/f;
       st.innerHTML=
-        `<div class="pl-stat" style="--pls-c:#ef9f2b"><div class="k">현재가격</div><div class="v">${F(px)}</div><div class="s">모델 대비 ${ratio.toFixed(2)}x</div></div>`+
-        `<div class="pl-stat" style="--pls-c:#8b5cf6"><div class="k">중심가격 (모델)</div><div class="v">${F(f)}</div><div class="s">적정가 · D+${Math.floor(dToday)}</div></div>`+
-        `<div class="pl-stat" style="--pls-c:#f03e5b"><div class="k">상단가격 (×${pl.band_high})</div><div class="v">${F(hi)}</div><div class="s">현재가 +${((hi/px-1)*100).toFixed(0)}% 위</div></div>`+
-        `<div class="pl-stat" style="--pls-c:#3b82f6"><div class="k">하단가격 (×${pl.band_low})</div><div class="v">${F(lo)}</div><div class="s">현재가 ${((lo/px-1)*100).toFixed(0)}% 아래</div></div>`;
+        `<span>현재가격: <b style="color:#ef9f2b">${F(px)}</b> (${(px/f).toFixed(2)}x)</span>`+
+        `<span>중심가격: <b style="color:#8b5cf6">${F(f)}</b></span>`+
+        `<span>상단가격: <b style="color:var(--up)">${F(hi)}</b></span>`+
+        `<span>하단가격: <b style="color:var(--down)">${F(lo)}</b></span>`;
     };
     draw(last[1]);                       // 일단 주봉 종가로
     fetchLivePrice().then(px=>{if(px)draw(px);});  // 실시간가로 갱신
