@@ -296,6 +296,11 @@
   /* power law 차트 */
   .pl-chart{border:1px solid var(--inst-line);border-radius:12px;background:var(--bg2);padding:10px 8px 4px;overflow:hidden}
   .pl-chart svg{display:block;width:100%;height:auto}
+  .pl-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-top:11px}
+  .pl-stat{background:var(--bg2);border:1px solid var(--inst-line);border-radius:10px;padding:11px 13px;box-shadow:inset 3px 0 0 var(--pls-c,var(--mut))}
+  .pl-stat .k{font-size:10px;color:var(--kicker);font-weight:700;text-transform:uppercase;letter-spacing:1px;font-family:var(--mono)}
+  .pl-stat .v{font-size:17px;font-weight:800;font-family:var(--mono);font-variant-numeric:tabular-nums;margin-top:4px}
+  .pl-stat .s{font-size:10.5px;color:var(--mut);font-family:var(--mono);margin-top:3px}
   .mc-label{font-size:10.5px;color:var(--kicker);font-weight:700;text-transform:uppercase;letter-spacing:1.1px;font-family:var(--mono)}
   .mc-val{font-size:25px;font-weight:800;font-family:var(--mono);font-variant-numeric:tabular-nums;letter-spacing:-.5px;margin-top:7px}
   .mc-badge{display:inline-block;margin-top:9px;padding:3px 10px;border-radius:7px;font-size:11px;font-weight:800;font-family:var(--mono);
@@ -501,6 +506,7 @@
         <div class="tp-section">
           <div class="tp-title">📐 BTC Power Law (전체 히스토리 · 로그 스케일)</div>
           <div class="pl-chart" id="plChart"><div class="tl-empty">데이터 대기 중</div></div>
+          <div class="pl-stats" id="plStats"></div>
           <p class="psub" style="margin-top:10px;padding-left:0">— 모델 적정가(가운데 점선) = 1.01e-17·d^5.82 (d=제네시스 경과일) · 보라 밴드 = ×0.42(역사적 바닥대) ~ ×2.5(과열대) · 주황 = 실제 가격</p>
         </div>
       </div>
@@ -710,6 +716,24 @@ function renderPowerLaw(pl){
     `<polyline points="${price}" fill="none" stroke="#ef9f2b" stroke-width="1.9" stroke-linejoin="round"></polyline>`+
     `<circle cx="${X(last[0]).toFixed(1)}" cy="${Y(last[1]).toFixed(1)}" r="3.4" fill="#ef9f2b" stroke="#fff" stroke-width="1.2"></circle>`+
   `</svg>`;
+  // 당일 기준 현재/중심/상단/하단 가격
+  const st=document.getElementById('plStats');
+  if(st){
+    const gEp=Date.UTC(2009,0,3)/86400000;
+    const dToday=Date.now()/86400000-gEp;
+    const f=fair(dToday), hi=f*pl.band_high, lo=f*pl.band_low;
+    const F=v=>'$'+Math.round(v).toLocaleString();
+    const draw=px=>{
+      const ratio=px/f;
+      st.innerHTML=
+        `<div class="pl-stat" style="--pls-c:#ef9f2b"><div class="k">현재가격</div><div class="v">${F(px)}</div><div class="s">모델 대비 ${ratio.toFixed(2)}x</div></div>`+
+        `<div class="pl-stat" style="--pls-c:#8b5cf6"><div class="k">중심가격 (모델)</div><div class="v">${F(f)}</div><div class="s">적정가 · D+${Math.floor(dToday)}</div></div>`+
+        `<div class="pl-stat" style="--pls-c:#f03e5b"><div class="k">상단가격 (×${pl.band_high})</div><div class="v">${F(hi)}</div><div class="s">현재가 +${((hi/px-1)*100).toFixed(0)}% 위</div></div>`+
+        `<div class="pl-stat" style="--pls-c:#3b82f6"><div class="k">하단가격 (×${pl.band_low})</div><div class="v">${F(lo)}</div><div class="s">현재가 ${((lo/px-1)*100).toFixed(0)}% 아래</div></div>`;
+    };
+    draw(last[1]);                       // 일단 주봉 종가로
+    fetchLivePrice().then(px=>{if(px)draw(px);});  // 실시간가로 갱신
+  }
 }
 function renderDry4h(s4h){
   const set=(id,txt,cls)=>{const e=document.getElementById(id);if(e){e.textContent=txt;e.className='v trend '+(cls||'neutral');}};
