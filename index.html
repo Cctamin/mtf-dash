@@ -138,6 +138,12 @@
         border-top:1.5px solid var(--bracket);border-right:1.5px solid var(--bracket);border-radius:0 4px 0 0;opacity:.7;transition:opacity .2s}
   .card{--rail:var(--pri)}
   .card:nth-child(2){--rail:var(--up)}.card:nth-child(3){--rail:var(--c4h)}.card:nth-child(4){--rail:var(--amber)}
+  /* 2줄 레이아웃: 1줄 = 자본+포지션 50/50, 2줄 = 추세/신호/4H 3등분 */
+  .cards.c2{grid-template-columns:1fr 1fr}
+  .cards.c3{grid-template-columns:repeat(3,1fr)}
+  .cards.c3 .card:nth-child(1){--rail:var(--c4h)}.cards.c3 .card:nth-child(2){--rail:var(--amber)}.cards.c3 .card:nth-child(3){--rail:var(--pri2)}
+  @media(max-width:960px){.cards.c3{grid-template-columns:1fr 1fr}}
+  @media(max-width:640px){.cards.c2,.cards.c3{grid-template-columns:1fr}}
   .card:hover{transform:translateY(-4px);box-shadow:var(--shadow-lg);border-color:color-mix(in srgb,var(--rail) 45%,var(--inst-line))}
   .card:hover::before{height:3px;box-shadow:0 0 20px var(--rail)}
   .card:hover::after{opacity:1}
@@ -390,8 +396,8 @@
         <div class="vamt" id="verdictAmt">—</div>
       </div>
 
-      <!-- 4 섹션 -->
-      <div class="cards">
+      <!-- 1줄: 자본 + 포지션 / 2줄: 추세 + 신호 + 4H -->
+      <div class="cards c2">
         <div class="card">
           <div class="ci b1">💰</div>
           <div class="dual">
@@ -406,6 +412,8 @@
           <div class="posmeta" id="posdet1h" style="display:none">진입 <span id="entry1h">—</span> · 수량 <span id="qty1h">—</span> · 레버리지 <b id="lev1h">5x</b></div>
           <div class="posmeta" id="holdinfo1h" style="display:none">⏳ holding 청산까지 <b id="hold1h">—</b></div>
         </div>
+      </div>
+      <div class="cards c3">
         <div class="card">
           <div class="ci b2">🧭</div>
           <div class="ck">상위 추세 · Regime 게이트</div>
