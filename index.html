@@ -7,6 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/dseg@0.46.0/css/dseg.css">
 <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
 <style>
   :root{
@@ -22,6 +23,7 @@
     --shadow-lg:0 2px 6px rgba(20,22,31,.06), 0 18px 44px rgba(20,22,31,.10);
     --radius:14px;
     --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+    --digit:"DSEG7 Classic","JetBrains Mono",ui-monospace,monospace;
     --ui:"Pretendard","Pretendard Variable",-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Segoe UI",Roboto,sans-serif;
   }
   body.dark{
@@ -104,14 +106,14 @@
                       repeating-linear-gradient(0deg, rgba(255,255,255,.018) 0 1px, transparent 1px 3px)}
   .verdict>*{position:relative;z-index:2}
   .vtop{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:18px}
-  .vid{display:flex;align-items:center;gap:9px;font-family:var(--mono);font-size:12px;font-weight:800;letter-spacing:2.6px;color:#9fb0c8;text-transform:uppercase}
+  .vid{display:flex;align-items:center;gap:10px;font-family:var(--mono);font-size:15.5px;font-weight:800;letter-spacing:2.2px;color:#cdd7e6;text-transform:uppercase}
   .vdot{width:8px;height:8px;border-radius:50%;background:#10b981;box-shadow:0 0 0 3px rgba(16,185,129,.16), 0 0 12px #10b981;animation:vpulse 2.4s ease-in-out infinite}
   @keyframes vpulse{0%,100%{opacity:1}50%{opacity:.35}}
   #verdictBig{font-size:25px;font-weight:900;letter-spacing:-.7px;line-height:1.05;text-align:right;font-family:var(--ui);
            background:linear-gradient(92deg,#ffffff,#c3cfe2);-webkit-background-clip:text;background-clip:text;color:transparent}
-  .vtrack{position:relative;height:42px;border-radius:10px;margin-top:8px;
+  .vtrack{position:relative;height:62px;border-radius:11px;margin-top:14px;
            background:linear-gradient(90deg, rgba(239,68,68,.62) 0%, rgba(245,158,11,.42) 27%, rgba(120,135,160,.22) 50%, rgba(132,204,22,.42) 73%, rgba(16,185,129,.66) 100%);
-           border:1px solid rgba(255,255,255,.08); box-shadow:inset 0 2px 9px rgba(0,0,0,.55)}
+           border:0; box-shadow:inset 0 2px 9px rgba(0,0,0,.55)}
   .vtrack::before{content:"";position:absolute;inset:0;border-radius:10px;pointer-events:none;
            background:repeating-linear-gradient(90deg, transparent 0 9.9%, rgba(0,0,0,.16) 9.9% 10%)}
   .vzero{position:absolute;left:50%;top:-5px;bottom:-5px;border-left:2px dashed rgba(255,255,255,.45);transform:translateX(-1px);z-index:1}
@@ -119,13 +121,40 @@
            box-shadow:0 0 10px rgba(16,185,129,.9);z-index:3}
   .vmark{position:absolute;top:-8px;bottom:-8px;width:4px;margin-left:-2px;background:#fff;border-radius:3px;
            box-shadow:0 0 0 1px rgba(0,0,0,.45), 0 0 16px rgba(255,255,255,.75);z-index:4;transition:left .6s cubic-bezier(.2,.7,.2,1)}
-  .vmark .vchip{position:absolute;top:-32px;left:50%;transform:translateX(-50%);background:#fff;color:#0a0d14;
+  .vmark .vchip{position:absolute;top:calc(100% + 7px);left:50%;transform:translateX(-50%);background:#fff;color:#0a0d14;
            font-size:12px;font-weight:800;font-family:var(--mono);padding:4px 10px;border-radius:8px;white-space:nowrap;box-shadow:0 4px 14px rgba(0,0,0,.55)}
-  .vmark .vchip::after{content:"";position:absolute;bottom:-4px;left:50%;width:8px;height:8px;background:#fff;transform:translateX(-50%) rotate(45deg)}
-  .vends{display:flex;justify-content:space-between;margin-top:11px;
-           font-size:10.5px;font-weight:700;font-family:var(--mono);color:#8593a8}
-  .vends span:last-child{color:#10b981}
+  .vmark .vchip::after{content:"";position:absolute;top:-4px;left:50%;width:8px;height:8px;background:#fff;transform:translateX(-50%) rotate(45deg)}
+  .vends{display:flex;justify-content:space-between;margin-top:38px;
+           font-size:14px;font-weight:800;font-family:var(--mono);color:#8593a8}
+  .vends .vlo{color:#f03e5b}
+  .vends .vhi{color:#10b981}
   .verdict .vamt{font-size:12.5px;font-weight:700;margin-top:13px;font-family:var(--mono);color:#9aa6ba;text-align:center}
+  /* 디지털 % readout (7-seg 느낌) */
+  /* 디지털 % = 게이지 bar 위 중앙 오버레이 */
+  .vbig{position:absolute;inset:0;z-index:3;display:flex;align-items:center;justify-content:center;line-height:1;font-weight:400;pointer-events:none}
+  .vbig .vnum{font-family:var(--digit);font-size:33px;letter-spacing:2px}
+  .vbig .vsign,.vbig .vunit{font-family:var(--mono);font-size:17px;font-weight:800;align-self:center;margin:0 2px}
+  .vbig.up{color:#10b981;text-shadow:0 1px 9px rgba(0,0,0,.7),0 0 16px rgba(16,185,129,.45)}
+  .vbig.down{color:#f03e5b;text-shadow:0 1px 9px rgba(0,0,0,.7),0 0 16px rgba(240,62,91,.45)}
+  .vsub{text-align:center;font-family:var(--mono);font-size:12.5px;font-weight:700;color:#9aa6ba;margin-top:13px}
+  .vsub b.up{color:#10b981}.vsub b.down{color:#f03e5b}
+  .vzerolbl{position:absolute;left:50%;top:-21px;transform:translateX(-50%);font-family:var(--mono);font-size:10px;font-weight:800;color:#cdd7e6;letter-spacing:.5px}
+  /* 🤖 봇 상태 — 진입 허들 경로 시각화 */
+  .botpath{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px 20px 14px;margin-top:14px}
+  .bp-h{display:flex;align-items:center;gap:7px;font-family:var(--mono);font-size:10.5px;font-weight:800;letter-spacing:1.6px;text-transform:uppercase;color:var(--kicker)}
+  .bp-track{position:relative;display:flex;justify-content:space-between;margin-top:26px}
+  .bp-line{position:absolute;left:12.5%;right:12.5%;top:18px;height:3px;background:var(--line);border-radius:2px;z-index:0}
+  .bp-line i{display:block;height:100%;background:#10b981;border-radius:2px;transition:width .45s ease}
+  .bp-runner{position:absolute;top:-11px;font-size:21px;transform:translateX(-50%);transition:left .45s ease;z-index:4;filter:drop-shadow(0 2px 4px rgba(0,0,0,.35))}
+  .bp-node{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;gap:6px;flex:1;text-align:center}
+  .bp-dot{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:19px;background:var(--bg2);border:2px solid var(--line);transition:.3s}
+  .bp-node.done .bp-dot{border-color:#10b981;background:color-mix(in srgb,#10b981 20%,transparent)}
+  .bp-node.cur .bp-dot{border-color:#ef9f2b;box-shadow:0 0 0 5px color-mix(in srgb,#ef9f2b 16%,transparent);animation:vpulse 2s ease-in-out infinite}
+  .bp-node.block .bp-dot{border-color:#f03e5b;background:color-mix(in srgb,#f03e5b 16%,transparent)}
+  .bp-lbl{font-size:11px;font-weight:700;color:var(--ink);letter-spacing:-.1px}
+  .bp-sub{font-size:10px;color:var(--mut);font-family:var(--mono)}
+  .bp-node.done .bp-sub{color:#10b981}.bp-node.cur .bp-sub{color:#ef9f2b}.bp-node.block .bp-sub{color:#f03e5b}
+  @media(max-width:720px){ .bp-lbl{font-size:10px}.bp-dot{width:34px;height:34px;font-size:16px} }
   /* ─── metric cards = 계기판 모듈 ─── */
   .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(238px,1fr));gap:15px}
   .card{background:var(--inst);border-radius:var(--radius);box-shadow:var(--shadow);padding:18px 18px 20px;position:relative;overflow:hidden;
@@ -331,6 +360,34 @@
   .sp-last{font-family:var(--mono);font-weight:800;font-size:15px;font-variant-numeric:tabular-nums}
   .sp-delta{font-family:var(--mono);font-size:11px;font-weight:700}
   .sp-card svg{display:block;width:100%;height:58px}
+  /* ── 매크로 보드 v3: 섹터 그룹 + 외곽선=상태색 + 전일 등락률 ── */
+  .mc-sectors{display:grid;grid-template-columns:repeat(auto-fit,minmax(330px,1fr));gap:15px;align-items:start}
+  .mc-sec{background:var(--bg2);border:1px solid var(--inst-line);border-radius:13px;padding:6px 8px 9px}
+  .mc-sec-h{display:flex;align-items:center;gap:7px;padding:10px 8px 8px;font-family:var(--mono);
+        font-size:10.5px;font-weight:800;letter-spacing:1.3px;text-transform:uppercase;color:var(--kicker);
+        border-bottom:1px solid var(--inst-line);margin-bottom:6px}
+  .mc-sec-h .ico{font-size:13px;letter-spacing:0}
+  /* 행 = 카드. 상태색은 외곽선(border)으로 구분. info/na는 외곽선 없음. */
+  .mc-row{display:flex;align-items:center;gap:10px;padding:9px 11px;border-radius:9px;
+        border:1.5px solid transparent;transition:background .12s}
+  .mc-row+.mc-row{margin-top:5px}
+  .mc-row.hot{--mc-c:#f03e5b}.mc-row.warm{--mc-c:#ef9f2b}.mc-row.ok{--mc-c:#0ca678}.mc-row.cold{--mc-c:#3b82f6}
+  .mc-row.hot,.mc-row.warm,.mc-row.ok,.mc-row.cold{
+        border-color:color-mix(in srgb,var(--mc-c) 60%,transparent);
+        background:color-mix(in srgb,var(--mc-c) 7%,transparent)}
+  .mc-row.hot:hover,.mc-row.warm:hover,.mc-row.ok:hover,.mc-row.cold:hover{
+        background:color-mix(in srgb,var(--mc-c) 13%,transparent)}
+  .mc-row.info,.mc-row.na{background:color-mix(in srgb,var(--ink) 3%,transparent)}
+  .mc-row .rl{flex:1 1 auto;min-width:0}
+  .mc-row .rl b{display:block;font-size:12px;font-weight:700;color:var(--ink);letter-spacing:-.1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .mc-row .rv{font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:16px;font-weight:800;letter-spacing:-.4px;flex:0 0 auto}
+  .mc-row.na .rv{color:var(--mut)}
+  /* 전일 대비 등락률 */
+  .mc-row .rd{font-family:var(--mono);font-size:11px;font-weight:700;flex:0 0 auto;font-variant-numeric:tabular-nums}
+  /* 상태 단어(과열/공포 등) = 외곽선색과 동일 텍스트. info/na는 흐리게. */
+  .mc-row .rb{flex:0 0 auto;font-size:10px;font-weight:800;font-family:var(--mono);white-space:nowrap;color:var(--mc-c,var(--mut))}
+  .mc-row.info .rb,.mc-row.na .rb{color:var(--mut);font-weight:600}
+  @media(max-width:720px){ .mc-sectors{grid-template-columns:1fr} }
   .status{display:flex;gap:22px;flex-wrap:wrap;color:var(--mut);font-size:12px;padding:6px 4px;font-family:var(--mono)}.status b{color:var(--ink);font-family:var(--mono)}
   footer{color:var(--mut);font-size:11px;margin-top:8px;padding:0 4px;font-family:var(--mono);letter-spacing:-.1px}
   /* form controls */
@@ -398,15 +455,13 @@
       <div class="verdict" id="verdict">
         <div class="vtop">
           <div class="vid"><span class="vdot"></span>🍚 밥값 리미터</div>
-          <div id="verdictBig">—</div>
         </div>
         <div class="vtrack">
           <div class="vzero"></div>
-          <div class="vredline"></div>
           <div class="vmark" id="vmark"><span class="vchip" id="vmarkLbl">—</span></div>
+          <div class="vbig" id="verdictPct">—</div>
         </div>
-        <div class="vends"><span>위험 −$110</span><span>$0 본전</span><span>한도 +$110</span></div>
-        <div class="vamt" id="verdictAmt">—</div>
+        <div class="vends"><span class="vlo">−$110</span><span class="vhi">+$110</span></div>
       </div>
 
       <!-- 1줄: 자본 + 포지션 / 2줄: 추세 + 신호 + 4H -->
@@ -428,26 +483,32 @@
       </div>
       <div class="cards c3">
         <div class="card">
-          <div class="ci b2">🧭</div>
-          <div class="ck">상위 추세 · Regime 게이트</div>
-          <div class="trendrow"><span class="k">4h 추세</span><span class="v trend neutral" id="trend4h">—</span></div>
-          <div class="trendrow"><span class="k">1d 추세</span><span class="v trend neutral" id="trend1d">—</span></div>
-          <div class="trendrow"><span class="k">🚦 게이트</span><span class="v trend neutral" id="gateStatus">—</span></div>
-        </div>
-        <div class="card">
           <div class="ci b2">🛰</div>
-          <div class="ck">현재 신호 (raw → regime)</div>
+          <div class="ck">현재 신호 (1h · 실거래)</div>
           <div class="trendrow"><span class="k">raw 신호</span><span class="v trend neutral" id="sigRaw">—</span></div>
           <div class="trendrow"><span class="k">게이트 결정</span><span class="v trend neutral" id="sigGated">—</span></div>
           <div class="trendrow"><span class="k">상태</span><span class="v trend neutral" id="sigState">—</span></div>
         </div>
         <div class="card">
+          <div class="ci b2">🧭</div>
+          <div class="ck">상위 추세 · Regime 게이트</div>
+          <div class="trendrow"><span class="k">1d 추세</span><span class="v trend neutral" id="trend1d">—</span></div>
+          <div class="trendrow"><span class="k">4h 추세</span><span class="v trend neutral" id="trend4h">—</span></div>
+          <div class="trendrow"><span class="k">🚦 게이트</span><span class="v trend neutral" id="gateStatus">—</span></div>
+        </div>
+        <div class="card">
           <div class="ci b2">🧪</div>
-          <div class="ck">4H 시스템 · DRY (주문 없음)</div>
+          <div class="ck">4H 시스템 · DRY (관찰용 · 주문 없음)</div>
           <div class="trendrow"><span class="k">raw 신호</span><span class="v trend neutral" id="sig4hRaw">—</span></div>
           <div class="trendrow"><span class="k">게이트 결정</span><span class="v trend neutral" id="sig4hGated">—</span></div>
           <div class="trendrow"><span class="k">평가 시각</span><span class="v trend neutral" id="sig4hTime">—</span></div>
         </div>
+      </div>
+
+      <!-- 🤖 봇 진입 허들 경로 시각화 -->
+      <div class="botpath" id="botPath">
+        <div class="bp-h"><span>🤖</span> 봇 상태 · 포지션 진입까지</div>
+        <div class="bp-track" id="botTrack"><div class="tl-empty">데이터 대기 중</div></div>
       </div>
 
       <!-- 차트 -->
@@ -519,12 +580,8 @@
     <section class="page" data-page="macro" style="display:none">
       <div class="panel" id="macroPanel">
         <h3>🌐 매크로 지표 보드 <span style="font-size:12px;color:var(--mut);font-weight:400" id="macroUpd">—</span></h3>
-        <p class="psub">크립토 심리 · 거시 지수 · BTC 장기 구조 — 15분 자동 갱신 · 배지 = 자동 해석 (🔴과열 🟡주의 🟢중립 🔵공포/저평가)</p>
-        <div class="mc-grid" id="macroGrid"><div class="tl-empty">macro.json 대기 중</div></div>
-        <div class="tp-section">
-          <div class="tp-title">📈 7일 추이</div>
-          <div class="spark-grid" id="macroCharts"></div>
-        </div>
+        <p class="psub">심리·포지션 · 온체인 · 거시 · 장기 구조 — 15분 자동 갱신 · 추이 가능 지표는 7일 스파크라인 병합 · 배지 = 자동 해석 (🔴과열 🟡주의 🟢중립 🔵공포/저평가)</p>
+        <div class="mc-sectors" id="macroSectors"><div class="tl-empty">macro.json 대기 중</div></div>
         <div class="tp-section">
           <div class="tp-title">📐 BTC Power Law (전체 히스토리 · 로그 스케일)</div>
           <div class="pl-chart" id="plChart"><div class="tl-empty">데이터 대기 중</div></div>
@@ -593,7 +650,7 @@ const CHART_H = 460;
 // ───────────────────────────────────────────────────
 const fmtPct=v=>(v>=0?"+":"")+Number(v).toFixed(2)+"%";
 const fmtNum=v=>Number(v).toLocaleString(undefined,{maximumFractionDigits:2});
-const fmtT=ms=>{const d=new Date(ms);return d.toLocaleString('ko-KR',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'});};
+const fmtT=ms=>{const d=new Date(ms);return isNaN(d.getTime())?'—':d.toLocaleString('ko-KR',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'});};
 window.onerror=function(msg,src,ln){var d=document.getElementById('diag');if(d)d.textContent='JS 에러 @'+ln+': '+msg;return false;};
 async function fetchJSON(u){try{const r=await fetch(u+'?_='+Date.now());if(!r.ok)return null;return await r.json();}catch(e){return null;}}
 async function fetchLivePrice(){try{const r=await fetch('https://api.exchange.coinbase.com/products/BTC-USD/ticker');if(!r.ok)return null;const j=await r.json();const p=Number(j.price);return isFinite(p)?p:null;}catch(e){return null;}}
@@ -658,43 +715,84 @@ function renderSignal(s1h){
   else if(gl||gs) set('sigState','✅ 신호 허용 → 진입','up');
   else set('sigState','무신호 (일봉 '+d+')','neutral');
 }
+// 🤖 봇 진입 허들 경로 — 🏃 가 어디까지 통과했나 시각화.
+function renderBotPath(s1h){
+  const el=document.getElementById('botTrack'); if(!el)return;
+  const sg=(s1h&&s1h.signal);
+  if(!sg){ el.innerHTML='<div class="tl-empty">데이터 대기 중 (다음 봉마감 후)</div>'; return; }
+  const side=(s1h&&s1h.position&&s1h.position.side||'flat').toLowerCase();
+  const inPos=side!=='flat';
+  const tr=sg.regime_daily_trend, trTxt={bullish:'상승',bearish:'하락',neutral:'중립'}[tr]||'—';
+  const rawL=sg.long_signal_raw, rawS=sg.short_signal_raw;
+  const h1=(tr==='bullish'||tr==='bearish');
+  const h2=!!(rawL||rawS);
+  const h3=!!(sg.long_signal||sg.short_signal);
+  const steps=[
+    {ico:'🧭',t:'추세 확정',done:h1,sub:h1?trTxt:'중립 — 잠김'},
+    {ico:'🛰️',t:'진입 신호',done:h2,sub:h2?(rawL?'롱 ▲':'숏 ▼'):'없음'},
+    {ico:'🚦',t:'게이트 통과',done:h3,sub:sg.regime_suppressed?'regime 억제':(h3?'허용':'대기')},
+    {ico:'🎯',t:'포지션 진입',done:inPos,sub:inPos?(side==='long'?'롱 진입':'숏 진입'):'대기'},
+  ];
+  const n=steps.length;
+  let cleared=0; for(const s of steps){ if(s.done)cleared++; else break; }
+  const runnerIdx=Math.min(cleared,n-1);
+  const fillPct=(runnerIdx/(n-1)*100).toFixed(1);
+  const runnerLeft=((runnerIdx+0.5)/n*100).toFixed(2);
+  const nodes=steps.map((s,i)=>{
+    const cls=i<cleared?'done':(i===cleared?((i===2&&sg.regime_suppressed)?'block':'cur'):'');
+    return `<div class="bp-node ${cls}"><div class="bp-dot">${s.ico}</div>`+
+      `<div class="bp-lbl">${s.t}</div><div class="bp-sub">${s.sub}</div></div>`;
+  }).join('');
+  el.innerHTML=`<div class="bp-line"><i style="width:${fillPct}%"></i></div>`+
+    `<div class="bp-runner" style="left:${runnerLeft}%">${inPos?'🎉':'🏃'}</div>`+nodes;
+}
+// 섹터 그룹화 — 묶을 것끼리 묶고, 7일추이 가능 지표는 행에 인라인 병합.
+const MACRO_SECTORS=[
+  {ico:'🪙',t:'심리 · 포지션',keys:['fng','funding','kimchi','dominance']},
+  {ico:'⛓️',t:'온체인 밸류에이션',keys:['mvrv_z','mvrv','nupl','puell','realized_price','cvdd']},
+  {ico:'📈',t:'장기 사이클',keys:['mayer','ma200w','powerlaw','halving']},
+  {ico:'🏛️',t:'거시 · 전통시장',keys:['nasdaq','dxy','vix','gold','btcgold']},
+  {ico:'💱',t:'환율',keys:['usdkrw','jpykrw']},
+];
 function renderMacro(mac){
-  const g=document.getElementById('macroGrid'); if(!g)return;
+  const sec=document.getElementById('macroSectors'); if(!sec)return;
   const ms=(mac&&Array.isArray(mac.metrics))?mac.metrics:[];
-  if(!ms.length){ g.innerHTML='<div class="tl-empty">macro.json 없음 — com.mtf.macro 잡 확인</div>'; return; }
-  g.innerHTML=ms.map(x=>
-    `<div class="mc-card ${x.badge_cls||'na'}">`+
-      `<div class="mc-label">${x.label}</div>`+
-      `<div class="mc-val">${x.value}</div>`+
-      `<div class="mc-badge">${x.badge||''}</div>`+
-      (x.detail?`<div class="mc-detail">${x.detail}</div>`:'')+
-    `</div>`).join('');
   const u=document.getElementById('macroUpd');
-  if(u&&mac.updated_at)u.textContent='갱신 '+fmtT(Date.parse(mac.updated_at));
-  // 7일 스파크라인
-  const cg=document.getElementById('macroCharts');
-  if(cg){
-    const cs=(mac&&Array.isArray(mac.charts))?mac.charts:[];
-    cg.innerHTML=cs.length?cs.map(c=>{
-      const pts=c.points||[]; if(pts.length<3)return '';
-      const W=250,H=58,P=4;
-      const mn=Math.min(...pts), mx=Math.max(...pts), rng=(mx-mn)||1;
-      const xy=pts.map((v,i)=>[P+i*(W-2*P)/(pts.length-1), H-P-(v-mn)/rng*(H-2*P)]);
-      const line=xy.map(p=>p[0].toFixed(1)+','+p[1].toFixed(1)).join(' ');
-      const area=`${P},${H-P} ${line} ${(W-P).toFixed(1)},${H-P}`;
-      const d=pts[0]!==0?((pts[pts.length-1]/pts[0]-1)*100):0;
-      const dTxt=(pts[0]>0&&pts[pts.length-1]>0)?((d>=0?'+':'')+d.toFixed(2)+'%'):'';
-      const [lx,ly]=xy[xy.length-1];
-      return `<div class="sp-card">`+
-        `<div class="sp-head"><span class="sp-name">${c.label}</span>`+
-        `<span><span class="sp-last">${c.last}</span> <span class="sp-delta" style="color:${d>=0?'var(--up)':'var(--down)'}">${dTxt}</span></span></div>`+
-        `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">`+
-        `<polygon points="${area}" fill="${c.color}" opacity="0.13"></polygon>`+
-        `<polyline points="${line}" fill="none" stroke="${c.color}" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"></polyline>`+
-        `<circle cx="${lx.toFixed(1)}" cy="${ly.toFixed(1)}" r="2.6" fill="${c.color}"></circle>`+
-        `</svg></div>`;
-    }).join(''):'<div class="tl-empty">차트 데이터 없음</div>';
-  }
+  if(u&&mac&&mac.updated_at)u.textContent='갱신 '+fmtT(Date.parse(mac.updated_at));
+  if(!ms.length){ sec.innerHTML='<div class="tl-empty">macro.json 없음 — com.mtf.macro 잡 확인</div>'; return; }
+  const charts={}; ((mac&&mac.charts)||[]).forEach(c=>{charts[c.key]=c;});
+  // 전일 대비 등락률 — 일봉 시계열 마지막 2점. 가격레벨 지표만(펀딩비/김프 등
+  // rate·프리미엄 값은 0 근처라 비율이 폭발 → 무의미하므로 제외).
+  const DELTA_KEYS=new Set(['nasdaq','dxy','vix','gold','btcgold','usdkrw','jpykrw','fng']);
+  const delta=key=>{
+    if(!DELTA_KEYS.has(key))return '';
+    const p=(charts[key]&&charts[key].points)||[];
+    if(p.length<2||!(p[p.length-2]>0))return '';
+    const d=(p[p.length-1]/p[p.length-2]-1)*100;
+    if(!isFinite(d))return '';
+    return `<div class="rd" style="color:${d>=0?'var(--up)':'var(--down)'}">${(d>=0?'+':'')+d.toFixed(2)}%</div>`;
+  };
+  const byk={}; ms.forEach(m=>{if(m&&m.key)byk[m.key]=m;});
+  const used=new Set();
+  const row=m=>{
+    const det=(m.detail||'').replace(/"/g,'&quot;');
+    const word=(m.badge||'').split(' ').slice(1).join(' ');  // 이모지 제거, 단어만(색=외곽선)
+    return `<div class="mc-row ${m.badge_cls||'na'}" title="${det}">`+
+      `<div class="rl"><b>${m.label}</b></div>`+
+      `<div class="rv">${m.value}</div>`+
+      delta(m.key)+
+      (word?`<div class="rb">${word}</div>`:'')+`</div>`;
+  };
+  let html='';
+  MACRO_SECTORS.forEach(s=>{
+    const ks=s.keys.filter(k=>byk[k]); if(!ks.length)return;
+    ks.forEach(k=>used.add(k));
+    html+=`<div class="mc-sec"><div class="mc-sec-h"><span class="ico">${s.ico}</span>${s.t}</div>`+
+      ks.map(k=>row(byk[k])).join('')+`</div>`;
+  });
+  const extra=ms.filter(m=>m.key&&!used.has(m.key));
+  if(extra.length) html+=`<div class="mc-sec"><div class="mc-sec-h"><span class="ico">🔹</span>기타</div>`+extra.map(row).join('')+`</div>`;
+  sec.innerHTML=html||'<div class="tl-empty">지표 없음</div>';
 }
 function renderPowerLaw(pl){
   const host=document.getElementById('plChart'); if(!host)return;
@@ -1068,11 +1166,12 @@ async function load(){
   const thr=acct?.performance?.breakeven_threshold_usd??110;
   const win=profit>=thr;
   const v=document.getElementById('verdict');
-  document.getElementById('verdictBig').textContent=win?'한도 달성 ✓':(profit>=0?'충전 중':'한도 미달');
-  const sg=profit>=0?'+':'-';
-  document.getElementById('verdictAmt').textContent=win?`${sg}$${Math.abs(profit).toFixed(2)} · 목표 $${thr} 달성 ✓ (Claude Code Max 본전!)`:`현재 ${sg}$${Math.abs(profit).toFixed(2)} / $${thr} · ${Math.max(0,profit/thr*100).toFixed(0)}% 채움`;
-  // 고정 그라데이션(빨강 −110 ~ 노랑 $0 ~ 초록 +110). 현재 수익 = 막대 마커 위치로 표시.
-  // pos% = (수익 + 목표) / (2×목표) × 100. $0→50%(중앙), −목표→0%, +목표→100%.
+  const up=profit>=0, sg=up?'+':'−';
+  const pct=thr>0?profit/thr*100:0;            // $0 = 0% 기준, −면 −%, +면 +%
+  const vp=document.getElementById('verdictPct');
+  if(vp){ vp.className='vbig '+(up?'up':'down');
+    vp.innerHTML=`<span class="vsign">${sg}</span><span class="vnum">${Math.abs(pct).toFixed(2)}</span><span class="vunit">%</span>`; }
+  // 막대: $0→50%(중앙), −목표→0%, +목표→100%.
   const pos=Math.max(0,Math.min(100,(profit+thr)/(2*thr)*100));
   const vm=document.getElementById('vmark'); if(vm)vm.style.left=pos+'%';
   const vl=document.getElementById('vmarkLbl'); if(vl)vl.textContent=`${sg}$${Math.abs(profit).toFixed(2)}`;
@@ -1089,6 +1188,7 @@ async function load(){
   setSys('1h',s1h);
   renderTrend(s1h);
   renderSignal(s1h);
+  renderBotPath(s1h);
   renderTrades(s1h);
   renderEquity(s1h);
   renderHolding(s1h);
