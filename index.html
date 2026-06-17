@@ -334,10 +334,14 @@
   .bal-suggest{font-family:var(--mono);font-size:12px;color:var(--mut);background:var(--bg2);border:1px dashed var(--line);
         border-radius:10px;padding:10px 13px;line-height:1.5}
   /* 매크로 지표 보드 */
-  .mc-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(225px,1fr));gap:13px}
-  .mc-card{background:var(--bg2);border:1px solid var(--inst-line);border-radius:12px;padding:15px 16px;position:relative;overflow:hidden;
-        box-shadow:inset 3px 0 0 var(--mc-c,var(--mut));transition:transform .15s}
-  .mc-card:hover{transform:translateY(-2px)}
+  .mc-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(168px,1fr));gap:10px}
+  .mc-card{background:color-mix(in srgb,var(--mc-c,var(--mut)) 7%,var(--bg2));border:1px solid color-mix(in srgb,var(--mc-c,var(--mut)) 22%,var(--inst-line));border-radius:13px;padding:13px 15px 14px;position:relative;overflow:hidden;
+        box-shadow:inset 4px 0 0 var(--mc-c,var(--mut));transition:transform .14s,box-shadow .14s}
+  .mc-card:hover{transform:translateY(-3px);box-shadow:inset 4px 0 0 var(--mc-c,var(--mut)),0 8px 22px rgba(4,8,24,.5)}
+  .mc-valrow{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin-top:6px}
+  .mc-rd{font-family:var(--mono);font-size:12px;font-weight:800;font-variant-numeric:tabular-nums}
+  .mc-secblock{margin-bottom:18px}
+  .mc-secblock:last-child{margin-bottom:0}
   .mc-card.hot{--mc-c:#f03e5b}.mc-card.warm{--mc-c:#ef9f2b}.mc-card.ok{--mc-c:#0ca678}.mc-card.cold{--mc-c:#3b82f6}
   .mc-card.info{--mc-c:var(--mut)}.mc-card.na{--mc-c:var(--mut)}
   .mc-card.na .mc-val{color:var(--mut)}
@@ -346,8 +350,8 @@
   .pl-chart svg{display:block;width:100%;height:auto}
   .pl-stats{display:flex;flex-wrap:wrap;gap:6px 22px;margin-top:11px;font-family:var(--mono);font-size:13px;color:var(--mut)}
   .pl-stats b{font-weight:800;font-variant-numeric:tabular-nums}
-  .mc-label{font-size:10.5px;color:var(--kicker);font-weight:700;text-transform:uppercase;letter-spacing:1.1px;font-family:var(--mono)}
-  .mc-val{font-size:25px;font-weight:800;font-family:var(--mono);font-variant-numeric:tabular-nums;letter-spacing:-.5px;margin-top:7px}
+  .mc-label{font-size:12.5px;color:var(--ink);font-weight:800;letter-spacing:-.1px;font-family:var(--ui);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .mc-val{font-size:29px;font-weight:800;font-family:var(--mono);font-variant-numeric:tabular-nums;letter-spacing:-.8px;line-height:1.05;color:var(--ink)}
   .mc-badge{display:inline-block;margin-top:9px;padding:3px 10px;border-radius:7px;font-size:11px;font-weight:800;font-family:var(--mono);
         background:color-mix(in srgb,var(--mc-c) 14%,transparent);color:var(--mc-c);border:1px solid color-mix(in srgb,var(--mc-c) 35%,transparent)}
   .mc-detail{font-size:11px;color:var(--mut);margin-top:9px;line-height:1.45}
@@ -361,7 +365,7 @@
   .sp-delta{font-family:var(--mono);font-size:11px;font-weight:700}
   .sp-card svg{display:block;width:100%;height:58px}
   /* ── 매크로 보드 v3: 섹터 그룹 + 외곽선=상태색 + 전일 등락률 ── */
-  .mc-sectors{display:grid;grid-template-columns:repeat(auto-fit,minmax(330px,1fr));gap:15px;align-items:start}
+  .mc-sectors{display:block}
   .mc-sec{background:var(--bg2);border:1px solid var(--inst-line);border-radius:13px;padding:6px 8px 9px}
   .mc-sec-h{display:flex;align-items:center;gap:7px;padding:10px 8px 8px;font-family:var(--mono);
         font-size:10.5px;font-weight:800;letter-spacing:1.3px;text-transform:uppercase;color:var(--kicker);
@@ -673,10 +677,7 @@ function renderBotPath(s1h){
 }
 // 섹터 그룹화 — 묶을 것끼리 묶고, 7일추이 가능 지표는 행에 인라인 병합.
 const MACRO_SECTORS=[
-  {ico:'🪙',t:'심리 · 포지션',keys:['fng','funding','kimchi','dominance']},
-  {ico:'⛓️',t:'온체인 밸류에이션',keys:['mvrv_z','mvrv','nupl','puell','realized_price','cvdd']},
-  {ico:'📈',t:'장기 사이클',keys:['mayer','ma200w','powerlaw','halving']},
-  {ico:'🏛️',t:'거시 · 전통시장',keys:['nasdaq','dxy','vix','gold','btcgold']},
+  {ico:'🪙',t:'크립토 핵심',keys:['fng','kimchi','dominance','realized_price','halving']},
   {ico:'💱',t:'환율',keys:['usdkrw','jpykrw']},
 ];
 function renderMacro(mac){
@@ -695,28 +696,25 @@ function renderMacro(mac){
     if(p.length<2||!(p[p.length-2]>0))return '';
     const d=(p[p.length-1]/p[p.length-2]-1)*100;
     if(!isFinite(d))return '';
-    return `<div class="rd" style="color:${d>=0?'var(--up)':'var(--down)'}">${(d>=0?'+':'')+d.toFixed(2)}%</div>`;
+    return `<span class="mc-rd" style="color:${d>=0?'var(--up)':'var(--down)'}">${(d>=0?'▲':'▼')+Math.abs(d).toFixed(2)}%</span>`;
   };
   const byk={}; ms.forEach(m=>{if(m&&m.key)byk[m.key]=m;});
   const used=new Set();
-  const row=m=>{
+  // 카드 = 라벨(작게) + 큰 값 + 전일등락 + 상태칩. "무엇이 어느 값"이 한눈에.
+  // 배지(공포/역프/안정 칩) 제거 — 카드 색만으로 상태 인지. detail은 hover title로 유지.
+  const card=m=>{
     const det=(m.detail||'').replace(/"/g,'&quot;');
-    const word=(m.badge||'').split(' ').slice(1).join(' ');  // 이모지 제거, 단어만(색=외곽선)
-    return `<div class="mc-row ${m.badge_cls||'na'}" title="${det}">`+
-      `<div class="rl"><b>${m.label}</b></div>`+
-      `<div class="rv">${m.value}</div>`+
-      delta(m.key)+
-      (word?`<div class="rb">${word}</div>`:'')+`</div>`;
+    return `<div class="mc-card ${m.badge_cls||'na'}" title="${det}">`+
+      `<div class="mc-label">${m.label}</div>`+
+      `<div class="mc-valrow"><span class="mc-val">${m.value}</span>${delta(m.key)}</div>`+
+      `</div>`;
   };
   let html='';
   MACRO_SECTORS.forEach(s=>{
     const ks=s.keys.filter(k=>byk[k]); if(!ks.length)return;
-    ks.forEach(k=>used.add(k));
-    html+=`<div class="mc-sec"><div class="mc-sec-h"><span class="ico">${s.ico}</span>${s.t}</div>`+
-      ks.map(k=>row(byk[k])).join('')+`</div>`;
+    html+=`<div class="mc-secblock"><div class="mc-sec-h"><span class="ico">${s.ico}</span>${s.t}</div>`+
+      `<div class="mc-grid">`+ks.map(k=>card(byk[k])).join('')+`</div></div>`;
   });
-  const extra=ms.filter(m=>m.key&&!used.has(m.key));
-  if(extra.length) html+=`<div class="mc-sec"><div class="mc-sec-h"><span class="ico">🔹</span>기타</div>`+extra.map(row).join('')+`</div>`;
   sec.innerHTML=html||'<div class="tl-empty">지표 없음</div>';
 }
 function renderPowerLaw(pl){
