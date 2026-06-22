@@ -563,6 +563,11 @@
           <div class="pl-stats" id="plStats"></div>
           <p class="psub" style="margin-top:10px;padding-left:0">— 모델 적정가(가운데 점선) = 1.01e-17·d^5.82 (d=제네시스 경과일) · 보라 밴드 = ×0.42(역사적 바닥대) ~ ×2.5(과열대) · 주황 = 실제 가격</p>
         </div>
+        <div class="tp-section">
+          <div class="tp-title">🪜 가격 사다리 — 현재가 vs 주요 가격 레벨</div>
+          <div class="pl-ladder" id="priceLadder"><div class="tl-empty">데이터 대기 중</div></div>
+          <p class="psub" style="margin-top:10px;padding-left:0">— 세로 로그축에 주요 가격 레벨을 점으로 표시 · <b style="color:var(--up)">초록</b>=현재가 아래(지지) · <b style="color:var(--down)">빨강</b>=현재가 위(저항) · 채굴 원가는 추정치(분기 갱신)</p>
+        </div>
       </div>
     </section>
 
@@ -783,6 +788,52 @@ function renderPowerLaw(pl){
     draw(last[1]);                       // 일단 주봉 종가로
     fetchLivePrice().then(px=>{if(px)draw(px);});  // 실시간가로 갱신
   }
+}
+function renderPriceLadder(lad){
+  const host=document.getElementById('priceLadder'); if(!host)return;
+  if(!lad||!Array.isArray(lad.levels)||!lad.levels.length){host.innerHTML='<div class="tl-empty">가격 사다리 데이터 없음</div>';return;}
+  const F=v=>'$'+Math.round(v).toLocaleString();
+  const draw=price=>{
+    const vals=lad.levels.map(l=>l.value).concat([price]);
+    let lo=Math.min(...vals), hi=Math.max(...vals);
+    const lg=Math.log10, y0=lg(lo)-0.04, y1=lg(hi)+0.04;
+    const W=720,T=22,B=22,AX=44,GAP=34;            // AX=세로축 x(좌측 그리드라벨 공간)
+    // 노드 = 레벨 + 현재가, 가격 내림차순(위→아래)
+    const nodes=lad.levels.map(l=>({...l,cur:false}))
+                 .concat([{label:'현재 BTC 가격',value:price,cur:true}])
+                 .sort((a,b)=>b.value-a.value);
+    // 라벨은 가격순 균등 간격(i*GAP) → H 결정적, 잘림 없음. 점은 실제 로그 위치.
+    const H=T+B+(nodes.length-1)*GAP+18;
+    const Y=v=>T+(y1-lg(v))/(y1-y0)*(H-T-B);
+    nodes.forEach((n,i)=>{n.py=Y(n.value); n.ly=T+i*GAP+8;});
+    const LX=AX+170;                               // 라벨 텍스트 x(점 영역 우측)
+    let svg=`<svg viewBox="0 0 ${W} ${H}" style="color:var(--ink);width:100%">`;
+    svg+=`<line x1="${AX}" y1="${T}" x2="${AX}" y2="${H-B}" stroke="currentColor" opacity="0.22" stroke-width="1.5"></line>`;
+    [1000,5000,10000,50000,100000,500000,1000000].forEach(v=>{
+      if(v<lo*0.92||v>hi*1.08)return; const y=Y(v).toFixed(1);
+      svg+=`<line x1="${AX}" y1="${y}" x2="${W-10}" y2="${y}" stroke="currentColor" opacity="0.05"></line>`+
+           `<text x="${AX-6}" y="${(+y+3).toFixed(1)}" text-anchor="end" font-size="9" font-family="monospace" fill="currentColor" opacity="0.42">${v>=1e6?'$'+v/1e6+'M':'$'+v/1e3+'k'}</text>`;});
+    // 지표별 고정색 (BTC 현재가는 노랑 고정). 위/아래는 ▲▼ 화살표로만 구분.
+    const COL={pl_high:'#8b5cf6',pl_fair:'#a855f7',pl_low:'#6d28d9',mining:'#b45309',
+               true_mean:'#0891b2',realized:'#2563eb',balanced:'#0d9488',
+               ath:'#db2777',ma200w:'#dc2626',price:'#f5c211'};
+    nodes.forEach(n=>{
+      const cur=n.cur;
+      // delta = 현재가 대비 이 레벨이 얼마나 위/아래 (현재가 기준 직관)
+      const dp=cur?0:Math.round((n.value-price)/price*1000)/10;
+      const col=cur?COL.price:(COL[n.key]||'#6b614b');
+      const r=cur?5.5:4, dotx=AX+14;
+      // 점(축 옆, 실제 가격 y) + leader line(점 → 충돌회피된 라벨 y)
+      svg+=`<circle cx="${dotx}" cy="${n.py.toFixed(1)}" r="${r}" fill="${col}" ${cur?'stroke="#fff" stroke-width="1.5"':''}></circle>`;
+      svg+=`<path d="M${dotx+r} ${n.py.toFixed(1)} L${LX-10} ${n.ly.toFixed(1)}" fill="none" stroke="${col}" stroke-width="${cur?1.6:1}" opacity="${cur?0.8:0.5}"></path>`;
+      // 이름 + 가격 한 줄(가격은 이름 옆). 현재가 대비 % 제거.
+      svg+=`<text x="${LX}" y="${(n.ly+4).toFixed(1)}" font-size="${cur?13.5:12.5}" font-family="-apple-system,sans-serif" font-weight="${cur?800:700}" fill="currentColor">${n.label} <tspan font-family="monospace" font-weight="800" fill="${col}">${F(n.value)}</tspan></text>`;
+    });
+    svg+=`</svg>`;
+    host.innerHTML=svg;
+  };
+  draw(lad.price);
+  if(typeof fetchLivePrice==='function') fetchLivePrice().then(px=>{if(px)draw(px);});
 }
 function renderDry4h(s4h){
   const set=(id,txt,cls)=>{const e=document.getElementById(id);if(e){e.textContent=txt;e.className='v trend '+(cls||'neutral');}};
@@ -1121,6 +1172,7 @@ async function load(){
   const mac = await fetchJSON('/macro.json') || (DATA_URL_MACRO?await fetchJSON(DATA_URL_MACRO):null) || await fetchJSON('macro.json');
   renderMacro(mac);
   renderPowerLaw(mac&&mac.powerlaw_chart);
+  renderPriceLadder(mac&&mac.price_ladder);
 
   const bps=(s1h&&s1h.price_series)||[];
   const lastC=bps.length?Number(bps[bps.length-1].slice(-1)[0]):null;
