@@ -92,7 +92,7 @@
 
   /* ---------- 본문 그리드 ---------- */
   .grid-main{
-    flex:1.55 1 0;min-height:0;display:grid;
+    flex:1.85 1 0;min-height:0;display:grid;
     grid-template-columns:288px minmax(0,1fr) 344px;gap:12px;
   }
   .grid-bot{
@@ -106,7 +106,7 @@
   .card-h{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:10px;flex:0 0 auto}
   .card-h h3{font-size:11.5px;font-weight:650;color:var(--ink-2);letter-spacing:.2px;margin:0}
   .card-h .meta{font-size:10px;color:var(--ink-3)}
-  .colstack{display:flex;flex-direction:column;gap:12px;min-height:0}
+  .colstack{display:flex;flex-direction:column;gap:12px;min-height:0;overflow:hidden}
 
   /* 포지션 카드 */
   .pos-state{display:flex;align-items:center;gap:9px;margin-bottom:4px}
@@ -133,8 +133,14 @@
   .lim-goal{position:absolute;top:-3px;bottom:-3px;right:0;width:2px;background:var(--up);opacity:.7}
   .lim-scale{display:flex;justify-content:space-between;margin-top:6px;font-size:9.5px;color:var(--ink-3);font-family:var(--mono)}
 
-  /* equity 차트 */
-  .chart-card{flex:1}
+  /* 중앙 메인: TradingView 실시간 차트 */
+  .tv-wrap{flex:1 1 0;min-height:0;position:relative;border-radius:8px;overflow:hidden}
+  .tv-wrap iframe,.tv-wrap .tradingview-widget-container__widget{width:100%!important;height:100%!important}
+  .tv-empty{display:flex;align-items:center;justify-content:center;height:100%;
+    font-size:12px;color:var(--ink-3);background:var(--line-2);border-radius:8px;text-align:center;padding:0 12px}
+
+  /* equity 차트 (좌열 하단 · 작은 크기) */
+  .chart-card{flex:1 1 0;min-height:0}
   .eq-wrap{position:relative;flex:1;min-height:0}
   #eqsvg{width:100%;height:100%;display:block}
   .eq-tip{position:absolute;pointer-events:none;background:var(--ink);color:#fff;
@@ -270,7 +276,7 @@
   <!-- ===== 본문 그리드 ===== -->
   <section class="grid-main">
 
-    <!-- 좌열: 포지션 + 리미터 -->
+    <!-- 좌열: 포지션 + 리미터 + 자산곡선 -->
     <div class="colstack">
       <div class="card" style="flex:0 0 auto">
         <div class="card-h"><h3>포지션</h3><span class="meta">BTCUSDT · 1h</span></div>
@@ -298,18 +304,27 @@
         </div>
         <div class="lim-scale"><span>−$110</span><span>$0</span><span class="up">밥값 +$110</span></div>
       </div>
+
+      <!-- 자산 곡선 (좌열 하단 · 리미터 아래) -->
+      <div class="card chart-card">
+        <div class="card-h">
+          <h3>자산 곡선 (equity)</h3>
+          <span class="meta" id="eqMeta">최근 이력 · 봉마감 기준</span>
+        </div>
+        <div class="eq-wrap">
+          <svg id="eqsvg"></svg>
+          <div class="eq-tip" id="eqTip"></div>
+        </div>
+      </div>
     </div>
 
-    <!-- 중앙: equity 곡선 -->
-    <div class="card chart-card">
+    <!-- 중앙 메인: TradingView 실시간 BTC 차트 -->
+    <div class="card tv-card">
       <div class="card-h">
-        <h3>자산 곡선 (equity)</h3>
-        <span class="meta" id="eqMeta">최근 이력 · 봉마감 기준</span>
+        <h3>BTC/USD 실시간</h3>
+        <span class="meta">TradingView · COINBASE:BTCUSD · 1h</span>
       </div>
-      <div class="eq-wrap">
-        <svg id="eqsvg"></svg>
-        <div class="eq-tip" id="eqTip"></div>
-      </div>
+      <div class="tv-wrap tradingview-widget-container" id="tvChart"></div>
     </div>
 
     <!-- 우열: 진입 허들 + 편차 위젯 -->
@@ -376,7 +391,7 @@
   var DATA_URL_1H=RAW+"public_state_1h.json";
   var DATA_URL_MACRO=RAW+"macro.json";
   var DATA_URL_DEV=RAW+"deviation.json";
-  var BINANCE_KLINES="https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=1d&limit=151";
+  var DATA_URL_REGIME=RAW+"regime_history.json";
 
   window.onerror=function(msg,src,ln){var d=document.getElementById('diag');if(d)d.textContent='JS 에러 @'+ln+': '+msg;return false;};
 
@@ -572,13 +587,14 @@
     var N=EQPTS.length;
     if(N<2){ svg.innerHTML='<text x="'+(W/2)+'" y="'+(H/2)+'" text-anchor="middle" font-size="12" fill="'+INK3+'">equity 데이터 부족</text>'; return; }
     var vs=EQPTS.map(function(p){return p.v;});
-    var mL=54,mR=54,mT=12,mB=22;
+    // 좌열로 이동해 폭이 좁아짐 → 여백 축소 + 눈금 간소화(3분할)
+    var mL=46,mR=12,mT=10,mB=18;
     var pw=W-mL-mR,ph=H-mT-mB;
     var min=Math.min.apply(null,vs),max=Math.max.apply(null,vs);
     var pad=(max-min)*0.18||Math.max(1,Math.abs(max)*0.001); min-=pad;max+=pad;
     function X(i){return mL+pw*(i/(N-1));}
     function Y(v){return mT+ph*(1-(v-min)/(max-min));}
-    var step=Math.max(1,Math.ceil((max-min)/4));
+    var step=Math.max(1,Math.ceil((max-min)/3));
     // 클린 눈금 반올림
     var mag=Math.pow(10,Math.floor(Math.log10(step))); step=Math.ceil(step/mag)*mag;
     var t0=Math.ceil(min/step)*step, ticks=[];
@@ -589,7 +605,7 @@
       g+='<line x1="'+mL+'" y1="'+y+'" x2="'+(W-mR)+'" y2="'+y+'" stroke="'+LINE+'" stroke-width="1"/>';
       g+='<text x="'+(mL-8)+'" y="'+(y+3.5)+'" text-anchor="end" font-size="10" fill="'+INK3+'" font-family="ui-monospace,monospace">$'+Math.round(t).toLocaleString()+'</text>';
     });
-    var xs=[0,Math.round((N-1)/3),Math.round((N-1)*2/3),N-1];
+    var xs=[0,Math.round((N-1)/2),N-1];
     xs.forEach(function(i){
       g+='<text x="'+X(i)+'" y="'+(H-6)+'" text-anchor="middle" font-size="10" fill="'+INK3+'" font-family="ui-monospace,monospace">'+fmtMD(new Date(Date.UTC(EQPTS[i].t.getUTCFullYear(),EQPTS[i].t.getUTCMonth(),EQPTS[i].t.getUTCDate())))+'</text>';
     });
@@ -759,37 +775,26 @@
   }
 
   /* ============================================================
-     레짐 타임라인 90일 — Binance 1d klines → SMA20/50 → bull/bear/neutral
+     레짐 타임라인 — 서버 생성 regime_history.json (봇과 동일 판정 재사용)
+     클라이언트 binance fetch/SMA 재구현 제거 — 한국 네트워크 binance 차단 회피.
+     라벨은 서버(scripts/regime_history.py)가 src.regime_gate 로직으로 산출.
      ============================================================ */
   var REGIME=[], REGIME_DATES=[];
-  function sma(arr,i,w){ if(i+1<w)return null; var s=0; for(var k=i-w+1;k<=i;k++)s+=arr[k]; return s/w; }
+  var REG_MAP={bullish:'bull',bearish:'bear',neutral:'neutral',bull:'bull',bear:'bear'};
   function loadRegime(){
-    var host=document.getElementById('rgBands');
-    fetchJSON(BINANCE_KLINES).then(function(kl){
-      if(!kl||!kl.length){ regimeFail(); return; }
-      // 마지막 봉이 아직 미완결(close time이 미래)이면 제외 — 미완봉이 SMA/레짐 밴드에 들어가는 것 방지
-      if(Number(kl[kl.length-1][6])>Date.now()){ kl=kl.slice(0,kl.length-1); }
-      if(kl.length>150){ kl=kl.slice(kl.length-150); }
-      if(!kl.length){ regimeFail(); return; }
-      var closes=kl.map(function(r){return Number(r[4]);});
-      var times=kl.map(function(r){return new Date(Number(r[0]));});
-      var reg=[];
-      for(var i=0;i<closes.length;i++){
-        var s20=sma(closes,i,20), s50=sma(closes,i,50);
-        if(s20==null||s50==null){ reg.push('neutral'); continue; }
-        var gap=(s20-s50)/s50;
-        if(gap>0.005) reg.push('bull');
-        else if(gap<-0.005) reg.push('bear');
-        else reg.push('neutral');
-      }
-      // 최근 90일
-      var start=Math.max(0,closes.length-90);
-      REGIME=reg.slice(start); REGIME_DATES=times.slice(start);
+    loadJSON('regime_history.json',DATA_URL_REGIME).then(function(j){
+      var days=(j&&j.days)||[];
+      if(!days.length){ regimeFail(); return; }
+      REGIME=days.map(function(x){return REG_MAP[String(x.r||'').toLowerCase()]||'neutral';});
+      REGIME_DATES=days.map(function(x){
+        var p=String(x.d||'').split('-');
+        return p.length===3?new Date(Date.UTC(+p[0],+p[1]-1,+p[2])):null;
+      });
       drawRegime();
     });
   }
   function regimeFail(){
-    document.getElementById('rgBands').innerHTML='<div class="rg-empty">일봉 데이터 불러오기 실패 (Binance API) — 나머지 위젯은 정상</div>';
+    document.getElementById('rgBands').innerHTML='<div class="rg-empty">일봉 레짐 데이터 불러오기 실패 — 나머지 위젯은 정상</div>';
     document.getElementById('edgeBracket').style.display='none';
     document.getElementById('edgeLbl').style.display='none';
   }
@@ -829,6 +834,23 @@
   }
 
   /* ============================================================
+     중앙 메인: TradingView 실시간 차트 (외부 embed · COINBASE:BTCUSD · 라이트)
+     ============================================================ */
+  function mountTV(){
+    var box=document.getElementById('tvChart'); if(!box)return;
+    box.innerHTML='<div class="tradingview-widget-container__widget"></div>';
+    var sc=document.createElement('script');
+    sc.type='text/javascript'; sc.async=true;
+    sc.src='https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js';
+    sc.text=JSON.stringify({autosize:true,symbol:"COINBASE:BTCUSD",interval:"60",
+      timezone:"Asia/Seoul",theme:"light",style:"1",locale:"kr",
+      hide_side_toolbar:true,allow_symbol_change:false,save_image:false,calendar:false});
+    // 외부 스크립트 로드 실패(네트워크 차단 등) → placeholder 안내(나머지 위젯은 정상)
+    sc.onerror=function(){ box.innerHTML='<div class="tv-empty">TradingView 차트 로드 실패 (외부 embed) — 네트워크 확인</div>'; };
+    box.appendChild(sc);
+  }
+
+  /* ============================================================
      로드 & 폴링
      ============================================================ */
   var LAST_STATE=null;
@@ -854,6 +876,7 @@
 
   loadAll();
   loadRegime();
+  mountTV();                        // 중앙 실시간 차트 1회 마운트
   setInterval(loadAll,60000);       // 60초 폴링
   setInterval(loadRegime,600000);   // 레짐은 10분마다 (일봉이라 자주 바뀌지 않음)
 })();
