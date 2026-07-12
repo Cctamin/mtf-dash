@@ -725,7 +725,11 @@
     }).join('')||'<tr><td colspan="6" class="mut" style="text-align:left">매매 없음</td></tr>';
   }
 
-  /* ===== 월간 손익 캘린더 ===== */
+  /* ===== 월간 손익 캘린더 =====
+     소스: closed_trades (equity_curve는 최근 ~2일치만 보유해 그 이전 청산 거래가
+     캘린더에서 누락되는 문제가 있었음 — equity_curve 일별 차분 방식 폐기).
+     집계: 이번 달(앵커 기준) 거래를 exit_time(UTC) 날짜별로 pnl_usd 합산 + 건수 집계.
+     타임존: exit_time이 전부 UTC(+00:00)이므로 월/일 경계도 UTC로 판정. */
   function divColor(v,mx){
     if(!v||v==null)return "var(--line-2)";
     var f=Math.min(1,Math.abs(v)/mx),a=0.14+f*0.66;
@@ -733,34 +737,33 @@
     return (v>0?UP:DOWN)+hex;
   }
   function renderCalendar(s){
-    var ec=(s.equity_curve||[]).map(function(p){return {t:new Date(Date.parse(p[0])),v:Number(p[1])};})
-                               .filter(function(p){return !isNaN(p.t.getTime())&&isFinite(p.v);});
-    var anchor=ec.length?ec[ec.length-1].t:new Date();
+    var ct=(s.closed_trades||[]).map(function(t){
+      return {t:new Date(Date.parse(t.exit_time)),v:Number(t.pnl_usd)};
+    }).filter(function(p){return !isNaN(p.t.getTime())&&isFinite(p.v);});
+    var h=s.health||{}, tick=h.last_tick&&Date.parse(h.last_tick);
+    var anchor=tick?new Date(tick):(ct.length?ct[ct.length-1].t:new Date());
     var y=anchor.getUTCFullYear(), mo=anchor.getUTCMonth();
     document.getElementById('calTitle').textContent=y+"년 "+(mo+1)+"월";
-    // 일별 마지막 equity (UTC 일 단위)
-    var dayLast={};
-    ec.forEach(function(p){
-      if(p.t.getUTCFullYear()===y&&p.t.getUTCMonth()===mo){ dayLast[p.t.getUTCDate()]=p.v; }
+    // 이번 달 청산 거래를 청산일(UTC)별로 손익 합산 + 건수 집계
+    var dpnl={}, dcnt={};
+    ct.forEach(function(p){
+      if(p.t.getUTCFullYear()===y&&p.t.getUTCMonth()===mo){
+        var dn=p.t.getUTCDate();
+        dpnl[dn]=(dpnl[dn]||0)+p.v;
+        dcnt[dn]=(dcnt[dn]||0)+1;
+      }
     });
-    // 월초 직전 마지막 값(전일 종가 앵커)
-    var monthStart=Date.UTC(y,mo,1);
-    var prev=null; ec.forEach(function(p){ if(p.t.getTime()<monthStart) prev=p.v; });
-    // 일별 손익 = 당일 마지막 − 전일 마지막
-    var days=Object.keys(dayLast).map(Number).sort(function(a,b){return a-b;});
-    var dpnl={}, base=prev;
-    days.forEach(function(dn){ if(base!=null) dpnl[dn]=dayLast[dn]-base; base=dayLast[dn]; });
     var vals=Object.keys(dpnl).map(function(k){return Math.abs(dpnl[k]);});
     var mx=Math.max.apply(null,vals.length?vals:[1])||1;
     var daysInMonth=new Date(Date.UTC(y,mo+1,0)).getUTCDate();
     var startDow=new Date(Date.UTC(y,mo,1)).getUTCDay();
-    var today=(anchor.getUTCFullYear()===y&&anchor.getUTCMonth()===mo)?anchor.getUTCDate():daysInMonth;
+    var today=anchor.getUTCDate();
     var cells="";
     for(var b=0;b<startDow;b++)cells+='<div class="cal-cell empty"></div>';
     for(var day=1;day<=daysInMonth;day++){
       var has=dpnl[day]!==undefined;
       var fut=day>today?' style="opacity:.4"':'';
-      var tip="7/"+day; if(has)tip+=" · "+fmtSigned(dpnl[day]);
+      var tip=(mo+1)+"/"+day; if(has)tip+=" · "+fmtSigned(dpnl[day])+" · "+dcnt[day]+"건";
       cells+='<div class="cal-cell" data-d="'+day+'"'+fut+' title="'+tip+'"><span class="cd">'+day+'</span></div>';
     }
     var grid=document.getElementById('calGrid');
