@@ -218,6 +218,73 @@
     text-decoration:none;opacity:.7}
   .legacy-link:hover{opacity:1;text-decoration:underline}
   #diag{position:fixed;left:12px;bottom:6px;font-size:10px;color:var(--down);font-family:var(--mono)}
+
+  /* ==========================================================
+     모바일 반응형 (≤900px) — 세로 나열 스크롤 레이아웃
+     데스크톱 규칙은 위 선언을 그대로 두고, 여기서만 재정의한다.
+     ========================================================== */
+  @media (max-width:900px){
+    .wrap{
+      height:auto;min-height:100vh;overflow:visible;
+      padding:12px 12px 30px;gap:12px;
+    }
+
+    /* 헤더: 줄바꿈 허용(각 요소를 세로로 쌓아 겹침/가로 넘침 원천 차단), equity·손익 폰트 확대 */
+    .head{flex-direction:column;align-items:flex-start;flex-wrap:wrap;row-gap:10px;gap:10px}
+    .head .hspring,.head .hsep{display:none}
+    .hstat{align-items:flex-start}
+    .hstat .v{font-size:22px}
+    .hstat .v.big{font-size:26px}
+
+    /* 레짐 타임라인 상단(제목+범례)도 좁은 화면에서 줄바꿈 허용 */
+    .rg-top{flex-direction:column;align-items:flex-start;gap:6px}
+    .rg-legend{flex-wrap:wrap;gap:6px 12px}
+    /* 엣지 브래킷 오버레이는 JS가 데스크톱 레이아웃 좌표계로 계산 —
+       좁은 화면에서 줄바꿈된 범례와 겹칠 수 있어 모바일에서는 숨김 */
+    .edge-bracket,.edge-lbl{display:none!important}
+
+    /* 카드 헤더(제목+메타): 한 줄 justify-content:space-between 은 CJK 텍스트가
+       줄바꿈 대신 압축되며 넘치는 경우가 있어 세로 배치로 전환 */
+    .card-h{flex-direction:column;align-items:flex-start;gap:2px}
+    /* 리미터 진척 라벨/값도 같은 이유로 세로 배치 */
+    .lim-h{flex-direction:column;align-items:flex-start;gap:2px}
+
+    /* 본문 그리드 → 단일 컬럼 스택 (마크업 DOM 순서 = 요구된 중요도순) */
+    .grid-main,.grid-bot{display:flex;flex-direction:column;flex:none;gap:12px}
+    .grid-main>.colstack,.grid-main>.card,.grid-bot>.card{flex:none;width:100%}
+    .colstack{overflow:visible;min-height:auto}
+    .card{overflow:visible;min-height:auto}
+
+    /* 자산 곡선: 스택에선 낮은 고정 높이 */
+    .chart-card{flex:none;height:200px}
+    .eq-wrap{min-height:150px}
+
+    /* BTC 실시간(TradingView): autosize가 세로 스택에서 0 높이로 붕괴하지 않도록 고정 높이 부여 */
+    .tv-card{flex:none;height:auto}
+    .tv-wrap{flex:none;height:360px;min-height:360px}
+
+    /* 편차 카드: 인라인 flex:1 1 0 이 auto-height 컨테이너에서 0 높이로 붕괴하는 것을 방지 */
+    .grid-main [style*="flex:1 1 0"]{flex:none!important}
+    .dev-scroll{flex:none;max-height:280px;overflow-y:auto;overflow-x:auto}
+    .dev-tbl{min-width:320px}
+
+    /* 매크로: 2컬럼 유지 */
+    .macro-grid{grid-template-columns:1fr 1fr}
+
+    /* 최근 매매: 좁은 화면에서 폰트 축소 대신 가로 스크롤 허용 */
+    .grid-bot>.card:nth-child(2){overflow-x:auto}
+    .grid-bot>.card:nth-child(2) .trd-tbl{min-width:480px}
+
+    /* 월간 캘린더: flex:1 로 남는 세로 공간을 채우던 방식 대신 고정 행 높이 */
+    .cal-grid{flex:none;grid-auto-rows:32px}
+
+    /* 가독성: 자잘한 라벨류 최소 11px 보장 */
+    .hstat .k,.card-h .meta,.rg-title,.rg-legend,.rg-axis,.lim-scale,
+    .dev-tbl th,.trd-tbl th,.cal-dow span,.cal-foot,.pos-side,.kv .k,
+    .st-s,.mac .ml,.dev-note,.cal-cell .cd,.edge-lbl,.rg-cap{
+      font-size:11px;
+    }
+  }
 </style>
 </head>
 <body>
