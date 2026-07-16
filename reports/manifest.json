@@ -6,6 +6,34 @@
       "date": "2026-07-16",
       "file": "reports/regime-direction-2026-07.html",
       "summary": "레짐 지속기간·재개/반전 확률·유사상황 경로추적 — 향후 방향 확률 판단"
+    },
+    {
+      "id": "adventurous-ops-2026-07",
+      "title": "모험적 운용 검증 — 청산·레짐게이트 실험 종합",
+      "date": "2026-07-15",
+      "file": "reports/adventurous-ops-2026-07.html",
+      "summary": "'너무 보수적인가?' 검증 — 청산 target sweep·게이트 완화 5변형 전부 기각, 현행 설정=국소 최적 근거"
+    },
+    {
+      "id": "entry-freshness-2026-07",
+      "title": "진입 신선도 필터 검증 — 기각",
+      "date": "2026-07-03",
+      "file": "reports/entry-freshness-2026-07.html",
+      "summary": "추격숏 금지 가설 — 1차 ADOPT가 분할 시프트에서 붕괴, 분할 섭동 게이트 교훈"
+    },
+    {
+      "id": "eth-scalp-nogo-2026-06",
+      "title": "ETH 단기봉(5m·15m) 스캘핑 — NO-GO",
+      "date": "2026-06-25",
+      "file": "reports/eth-scalp-nogo-2026-06.html",
+      "summary": "walk-forward 엣지 게이트 cum −97~99%·win<40% — 수수료가 단기봉 엣지 잠식, 1h+ 전용 확정"
+    },
+    {
+      "id": "ross-vs-bot-2026-06",
+      "title": "Ross Cameron 매매법 vs 봇 — BTC 1h OOS 대결",
+      "date": "2026-06-24",
+      "file": "reports/ross-vs-bot-2026-06.html",
+      "summary": "MACD+RSI 단타기법 완패(bear −9.8% vs 봇 +206%), 1:2 부분익절 이식도 기각"
     }
   ]
 }

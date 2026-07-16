@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ETH 단기봉(5m·15m) 스캘핑 — NO-GO 분석 보고서</title>
+</head>
+<body>
+<style>
+:root {
+  --bull:#008300; --neut:#eda100; --bear:#e34948;
+  --bull-rgb:0,131,0; --bear-rgb:227,73,72;
+  --series-1:#2a78d6;
+  --surface:#fcfcfb; --surface-2:#f4f3f0; --card:#ffffff;
+  --text-primary:#0b0b0b; --text-secondary:#52514e; --text-muted:#86847e;
+  --border:#e3e1db; --grid:#ecece6;
+  --ok:#0ca30c; --bad:#d03b3b;
+}
+:root[data-theme="dark"], :root:not([data-theme="light"]) {}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bull:#22a722; --neut:#c98500; --bear:#e66767;
+    --bull-rgb:34,167,34; --bear-rgb:230,103,103;
+    --series-1:#3987e5;
+    --surface:#141413; --surface-2:#1f1f1d; --card:#1a1a19;
+    --text-primary:#f5f4ee; --text-secondary:#c3c2b7; --text-muted:#8f8d84;
+    --border:#33322e; --grid:#2a2a27;
+    --ok:#3cc23c; --bad:#e66767;
+  }
+}
+:root[data-theme="dark"] {
+    --bull:#22a722; --neut:#c98500; --bear:#e66767;
+    --bull-rgb:34,167,34; --bear-rgb:230,103,103;
+    --series-1:#3987e5;
+    --surface:#141413; --surface-2:#1f1f1d; --card:#1a1a19;
+    --text-primary:#f5f4ee; --text-secondary:#c3c2b7; --text-muted:#8f8d84;
+    --border:#33322e; --grid:#2a2a27;
+    --ok:#3cc23c; --bad:#e66767;
+}
+* { box-sizing:border-box; }
+body { margin:0; background:var(--surface); color:var(--text-primary);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Helvetica Neue","Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+  line-height:1.65; font-size:15px; -webkit-font-smoothing:antialiased; }
+.wrap { max-width:940px; margin:0 auto; padding:32px 22px 80px; }
+h1 { font-size:27px; font-weight:750; letter-spacing:-0.02em; margin:0 0 6px; }
+h2 { font-size:20px; font-weight:700; letter-spacing:-0.01em; margin:52px 0 6px; padding-top:18px; border-top:1px solid var(--border); }
+h3 { font-size:15px; font-weight:700; margin:26px 0 8px; color:var(--text-primary); }
+.sub { color:var(--text-muted); font-size:13px; margin:0 0 6px; }
+p { margin:10px 0; color:var(--text-secondary); }
+p.interp { color:var(--text-primary); }
+b, strong { color:var(--text-primary); font-weight:650; }
+.card { background:var(--card); border:1px solid var(--border); border-radius:14px; padding:20px 22px; margin:18px 0; }
+.tldr { border-left:4px solid var(--series-1); }
+.figwrap { background:var(--card); border:1px solid var(--border); border-radius:14px; padding:16px 14px 8px; margin:16px 0; overflow-x:auto; }
+.fcap { font-size:12.5px; color:var(--text-muted); margin:2px 4px 8px; }
+.grid-tiles { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px; margin:14px 0; }
+.tile { background:var(--surface-2); border:1px solid var(--border); border-radius:12px; padding:14px 16px; }
+.tile .k { font-size:12px; color:var(--text-muted); margin-bottom:3px; }
+.tile .v { font-size:23px; font-weight:750; letter-spacing:-0.02em; }
+.tile .v.sm { font-size:17px; }
+.tile .ci { font-size:11.5px; color:var(--text-muted); }
+.bull { color:var(--bull); } .bear { color:var(--bear); } .neut { color:var(--neut); }
+table { border-collapse:collapse; width:100%; font-size:13.5px; margin:12px 0; }
+th,td { text-align:left; padding:7px 10px; border-bottom:1px solid var(--border); }
+th { color:var(--text-muted); font-weight:600; font-size:12px; text-transform:uppercase; letter-spacing:0.03em; }
+td.mut { color:var(--text-muted); }
+td.ok { color:var(--ok); font-weight:700; } td.bad { color:var(--bad); font-weight:700; }
+tr.unrel td { color:var(--text-muted); }
+.warnbadge { display:inline-block; font-size:10.5px; background:rgba(208,59,59,.14); color:var(--bad); padding:1px 6px; border-radius:6px; margin-left:4px; }
+.curbadge { display:inline-block; font-size:10.5px; background:var(--series-1); color:#fff; padding:1px 7px; border-radius:6px; margin-left:5px; font-weight:700; }
+.chip { display:inline-block; border:1px solid var(--border); border-radius:20px; padding:4px 14px; margin:3px 6px 3px 0; font-size:12.5px; color:var(--text-secondary); background:var(--surface-2); }
+.pathflow-cap { font-size:12px; color:var(--text-muted); margin:8px 4px 0; }
+.legend { display:flex; gap:18px; flex-wrap:wrap; margin:4px 4px 10px; font-size:12.5px; color:var(--text-secondary); }
+.legend span { display:inline-flex; align-items:center; gap:6px; }
+.sw { width:11px; height:11px; border-radius:3px; display:inline-block; }
+.grid { stroke:var(--grid); stroke-width:1; }
+.tick { fill:var(--text-muted); font-size:11px; }
+.tickmut { fill:var(--text-muted); font-size:9.5px; }
+.axl { fill:var(--text-secondary); font-size:11.5px; }
+.dlabel { font-size:11.5px; font-weight:650; }
+.barval { fill:var(--text-primary); font-size:12px; font-weight:700; }
+.warnbox { background:rgba(237,161,0,.10); border:1px solid rgba(237,161,0,.35); border-radius:12px; padding:14px 18px; margin:16px 0; font-size:13.5px; }
+.gonogobox { background:rgba(227,73,72,.10); border:1px solid rgba(227,73,72,.35); border-radius:12px; padding:14px 18px; margin:16px 0; font-size:13.5px; }
+ul { color:var(--text-secondary); } li { margin:4px 0; }
+code { background:var(--surface-2); padding:1px 5px; border-radius:5px; font-size:12.5px; }
+.foot { color:var(--text-muted); font-size:12px; margin-top:40px; }
+.scgrid { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+@media (max-width:640px) { .scgrid { grid-template-columns:1fr; } h1{font-size:23px;} }
+@media print {
+  :root { color-scheme: light; }
+  html, body { background:#fff !important; }
+  .wrap { max-width:100%; padding:6mm 4mm; margin:0; }
+  @page { size:A4 portrait; margin:12mm 10mm; }
+  h1,h2,h3,h4 { break-after:avoid; page-break-after:avoid; }
+  h2 { margin-top:20px; }
+  .card, .figwrap, .warnbox, .gonogobox, table, .grid-tiles, .scgrid, svg, .chip, .tile {
+    break-inside:avoid; page-break-inside:avoid;
+  }
+  .scgrid { grid-template-columns:1fr 1fr; }
+  .grid-tiles { grid-template-columns:repeat(3,1fr); }
+  tr { break-inside:avoid; page-break-inside:avoid; }
+  thead { display:table-header-group; }
+  a[href]:after { content:""; }
+  div[style*="overflow-x"] { overflow:visible !important; }
+  div[style*="overflow-x"] table { table-layout:fixed; width:100%; font-size:7.6pt; }
+  div[style*="overflow-x"] table th,
+  div[style*="overflow-x"] table td { word-break:break-word; overflow-wrap:anywhere; padding:4px 5px; }
+  div[style*="overflow-x"] table td[style*="font-size"] { font-size:7.2pt !important; }
+}
+</style>
+
+<div class="wrap">
+<h1>ETH 단기봉(5m·15m) 스캘핑 — NO-GO 분석 보고서</h1>
+<p class="sub">ETH/USDT USDⓈ-M Futures · walk-forward 엣지 사전등록 GO/NO-GO 게이트 · train120d/test30d/step60d, 30윈도우, 2021-06~2026-03 OOS · 판정일 2026-06-25 · 작성 2026-07-16 JST</p>
+
+<div class="card tldr">
+<h3 style="margin-top:0">TL;DR</h3>
+<div>
+<span class="chip">판정 <b class="bear">NO-GO</b> (5m + 15m 둘 다)</span>
+<span class="chip">5m 누적 <b class="bear">−99.8%</b> · 승률 <b class="bear">39.2%</b></span>
+<span class="chip">15m 누적 <b class="bear">−97.4%</b> · 승률 <b class="bear">39.7%</b></span>
+<span class="chip">Buy&amp;Hold <b class="bull">+16.3~16.4%</b></span>
+<span class="chip">트랙 <b>종료</b> — 단기봉 스캘핑 재개 없음</span>
+</div>
+<p class="interp" style="margin-top:14px">사용자 발의로 BTC 1h 봇은 그대로 두고 ETH/USDT 단기봉(5m) 스캘핑을 신규 트랙으로 검토했다. 사전등록된 Phase 1 walk-forward 엣지 게이트(현실 수수료 포함)를 5m·15m 두 타임프레임에서 각각 통과시켜야 다음 단계(튜닝·봇 빌드)로 진행하는 구조였다. 결과는 <b>둘 다 명확한 NO-GO</b>: 30개 OOS 윈도우 중 양(+)윈도우가 5m 1/30(3.3%), 15m 5/30(16.7%)에 불과했고, 누적수익률은 각각 −99.8%/−97.4%로 사실상 전액 손실, 승률은 39%대(동전던지기 50% 미만)로 신호가 오히려 반대에 가까웠다. 거래비용(왕복 0.18%)이 5m 봉의 가격변동폭을 그대로 잠식해 gross 엣지가 사실상 0이었다. <b>타임프레임을 5m→15m로 한 칸 올려도 임계를 넘지 못했다</b> — 문제는 봉 주기가 아니라 단기봉 자체에 이 엔진의 엣지가 없다는 것. 이 전략의 검증된 엣지는 1h+(현행 BTC 봇)에서만 존재한다. 사용자 결정으로 2026-06-25 트랙 전체 종료.</p>
+</div>
+
+<div class="gonogobox">🛑 <b>사전등록 GO 조건</b> — <code>sharpe&gt;0 AND positive_windows_ratio≥0.5 AND cum_return&gt;buy_hold</code> — <b>5m·15m 모두 세 조건 전부 위반.</b> Phase 2(튜닝) 이후는 착수하지 않음.</div>
+
+<h2>1. 배경 — 사용자 의도</h2>
+<p>2026-06-24 사용자 발의: <b>BTC/USDT 1h 봇은 무접촉으로 그대로 유지</b>하고, <b>ETH/USDT 단기봉(15분 이내 → 5m 확정) 스캘핑 봇을 별도 신규 트랙</b>으로 검토하고 싶다는 요청이었다. 확정된 전제는 다음과 같다.</p>
+<table>
+<tr><th>항목</th><th>결정</th></tr>
+<tr><td>대상 / 상품</td><td>ETH/USDT USDⓈ-M Futures (BTC 1h 봇과 완전 분리, 무접촉)</td></tr>
+<tr><td>진입 봉</td><td>5m (검증 결과에 따라 15m도 대조 검증)</td></tr>
+<tr><td>전략 엔진</td><td>기존 similarity + regime 게이트 엔진을 ETH 5m로 재튜닝 (신규 엔진 아님)</td></tr>
+<tr><td>주문 타입</td><td>Market / taker (현행 봇과 동일한 bar close → next open)</td></tr>
+<tr><td>검증 원칙</td><td><b>walk-forward 엣지 증명이 먼저</b> — 통과해야만 봇 가동으로 진행</td></tr>
+<tr><td>데이터 깊이</td><td>2020+ 전체 vs 최근(1500봉/1년) 검색깊이 축 비교 (BTC search-depth 실험 미러)</td></tr>
+<tr><td>레버리지</td><td>walk-forward는 명목 1x로 평가 (운영 사이징은 별도, cap 5x)</td></tr>
+</table>
+<p>이 신규 트랙은 <b>Phase 1을 GO/NO-GO 게이트로 명시적으로 사전등록</b>했다 — "수수료·펀딩·슬리피지를 넘는 엣지가 baseline(buy&amp;hold) 대비 증명되지 않으면 Phase 2 이후는 빌드하지 않는다"는 원칙이었다. 이는 검증 없이 만들었다면 −99.8% 성과의 봇을 라이브로 보낼 뻔했던 상황을 사전에 차단하기 위한 장치였다.</p>
+
+<h2>2. 설계 — walk-forward 엣지 게이트</h2>
+<div class="grid-tiles">
+<div class="tile"><div class="k">심볼 / 거래소</div><div class="v sm">ETHUSDT</div><div class="ci">binance-fapi USDⓈ-M</div></div>
+<div class="tile"><div class="k">엔진</div><div class="v sm">similarity+regime</div><div class="ci">pattern 60 / top_k 30 / cosine</div></div>
+<div class="tile"><div class="k">윈도우</div><div class="v sm">120/30/60d</div><div class="ci">train/test/step · 30 윈도우</div></div>
+<div class="tile"><div class="k">청산 anchor</div><div class="v sm">hold/stop/target</div><div class="ci">5m: 24봉(2h)·−1.5%·+3% / 15m: 12봉(3h)·동일</div></div>
+<div class="tile"><div class="k">비용</div><div class="v sm">≈0.18%/거래</div><div class="ci">taker 0.08% 왕복 + slippage 10bp</div></div>
+<div class="tile"><div class="k">레버리지</div><div class="v sm">명목 1x</div><div class="ci">운영 사이징과 분리 평가</div></div>
+</div>
+<p>fixture는 ETHUSDT 5m, 2020-01-01~2026-06-24 (681,563봉, 갭 0)를 <code>scripts/fetch_history_eth5m.py</code>로 수집했고, 15m은 별도 수집 없이 동일 5m fixture를 리샘플해 <code>scripts/walk_forward_eth15m.py</code>로 검증했다(교차 확인 목적). 검색깊이 축은 최근 1,500봉 / 최근 1년(105,120봉·5m, 35k봉·15m) / 2020+ 전체 3단계로 설계했으나, <b>최근 1,500봉 단계에서 이미 압도적 NO-GO가 확정</b>되어 2020+ 전체 단계는 실행하지 않았다(가망 없음 판단).</p>
+
+<h2>3. 결과 — 5m·15m 모두 참패</h2>
+<table>
+<tr><th>구분</th><th>거래수</th><th>승률</th><th>누적수익률</th><th>Sharpe-like</th><th>양(+)윈도우</th><th>GO?</th></tr>
+<tr><td><b>5m</b> (최근 1,500봉)</td><td>4,128</td><td class="bad">39.2%</td><td class="bad">−99.8%</td><td class="bad">−0.14</td><td class="bad">1/30 (3.3%)</td><td class="bad">NO</td></tr>
+<tr><td><b>15m</b> (최근 1,500봉)</td><td>2,613</td><td class="bad">39.7%</td><td class="bad">−97.4%</td><td class="bad">−0.11</td><td class="bad">5/30 (16.7%)</td><td class="bad">NO</td></tr>
+<tr class="unrel"><td>5m 1년 검색깊이 (105k봉, 27윈도우)†</td><td class="mut">—</td><td class="mut">—</td><td class="bad">윈도우합 −411%</td><td class="mut">—</td><td class="bad">2/27</td><td class="bad">NO</td></tr>
+<tr class="unrel"><td>15m 1년 검색깊이 (35k봉, 21윈도우)†</td><td class="mut">—</td><td class="mut">—</td><td class="bad">윈도우합 −131%</td><td class="mut">—</td><td class="bad">5/21 (pos5/neg15†)</td><td class="bad">NO</td></tr>
+<tr><td><b>Buy &amp; Hold</b> (동기간)</td><td class="mut">—</td><td class="mut">—</td><td class="ok">+16.3~16.4%</td><td class="mut">—</td><td class="mut">—</td><td class="mut">baseline</td></tr>
+</table>
+<p class="sub">† 1년 검색깊이 행은 <code>reports/eth5m_wf/summary.json</code>·<code>eth15m_wf/summary.json</code>에는 최근 1,500봉 결과만 원본 보존되어 있고, 수치는 <code>.ai/planner/eth_scalp_5m_plan.md</code> 및 wiki 서사 기록 인용(§6 한계 참조). 최근 1,500봉 행은 두 summary.json과 1:1 대조 완료.</p>
+
+<div class="figwrap">
+<div class="fcap">누적수익률 비교 — 5m·15m 최근 1,500봉 vs Buy&amp;Hold. 두 타임프레임 모두 baseline에 압도적 열세.</div>
+<svg viewBox="0 0 620 222" width="100%" preserveAspectRatio="xMidYMid meet" role="img" style="max-width:620px"><line x1="181.4" y1="26" x2="181.4" y2="176.0" class="grid"/><text x="181.4" y="194.0" class="tick" text-anchor="middle">-100%</text><line x1="260.0" y1="26" x2="260.0" y2="176.0" class="grid"/><text x="260.0" y="194.0" class="tick" text-anchor="middle">-75%</text><line x1="338.6" y1="26" x2="338.6" y2="176.0" class="grid"/><text x="338.6" y="194.0" class="tick" text-anchor="middle">-50%</text><line x1="417.1" y1="26" x2="417.1" y2="176.0" class="grid"/><text x="417.1" y="194.0" class="tick" text-anchor="middle">-25%</text><line x1="495.7" y1="26" x2="495.7" y2="176.0" class="grid"/><text x="495.7" y="194.0" class="tick" text-anchor="middle">0%</text><line x1="574.3" y1="26" x2="574.3" y2="176.0" class="grid"/><text x="574.3" y="194.0" class="tick" text-anchor="middle">25%</text><line x1="495.7" y1="26" x2="495.7" y2="176.0" stroke="var(--text-muted)" stroke-width="1" stroke-dasharray="3,3"/><rect x="182.0" y="30.0" width="313.7" height="34" rx="5" fill="var(--bear)"><title>5m: -99.8%</title></rect><text x="140" y="51.0" class="tick" text-anchor="end" font-size="13">5m</text><text x="172.0" y="51.0" class="barval" text-anchor="end">-99.8%</text><rect x="189.6" y="84.0" width="306.1" height="34" rx="5" fill="var(--bear)"><title>15m: -97.4%</title></rect><text x="140" y="105.0" class="tick" text-anchor="end" font-size="13">15m</text><text x="179.6" y="105.0" class="barval" text-anchor="end">-97.4%</text><rect x="495.7" y="138.0" width="51.5" height="34" rx="5" fill="var(--bull)"><title>Buy&amp;Hold: +16.4%</title></rect><text x="140" y="159.0" class="tick" text-anchor="end" font-size="13">Buy&amp;Hold</text><text x="557.3" y="159.0" class="barval" text-anchor="start">+16.4%</text></svg>
+</div>
+
+<div class="figwrap">
+<div class="fcap">승률 비교 — 5m 39.2%, 15m 39.7%, 둘 다 동전던지기(50%) 미만. win&lt;40%은 신호가 anti-predictive에 가깝다는 신호.</div>
+<svg viewBox="0 0 620 176" width="100%" preserveAspectRatio="xMidYMid meet" role="img" style="max-width:620px"><line x1="150.0" y1="26" x2="150.0" y2="124.0" class="grid"/><text x="150.0" y="142.0" class="tick" text-anchor="middle">0%</text><line x1="238.0" y1="26" x2="238.0" y2="124.0" class="grid"/><text x="238.0" y="142.0" class="tick" text-anchor="middle">20%</text><line x1="326.0" y1="26" x2="326.0" y2="124.0" class="grid"/><text x="326.0" y="142.0" class="tick" text-anchor="middle">40%</text><line x1="370.0" y1="26" x2="370.0" y2="124.0" class="grid"/><text x="370.0" y="142.0" class="tick" text-anchor="middle">50%</text><line x1="414.0" y1="26" x2="414.0" y2="124.0" class="grid"/><text x="414.0" y="142.0" class="tick" text-anchor="middle">60%</text><line x1="502.0" y1="26" x2="502.0" y2="124.0" class="grid"/><text x="502.0" y="142.0" class="tick" text-anchor="middle">80%</text><line x1="590.0" y1="26" x2="590.0" y2="124.0" class="grid"/><text x="590.0" y="142.0" class="tick" text-anchor="middle">100%</text><line x1="370.0" y1="26" x2="370.0" y2="124.0" stroke="var(--text-primary)" stroke-width="1.3" stroke-dasharray="4,3"/><text x="370.0" y="20" class="tickmut" text-anchor="middle">동전던지기 50%</text><rect x="150.0" y="30.0" width="172.3" height="34" rx="5" fill="var(--bear)"><title>5m 승률: 39.2%</title></rect><text x="140" y="51.0" class="tick" text-anchor="end" font-size="13">5m</text><text x="330.3" y="51.0" class="barval" text-anchor="start">39.2%</text><rect x="150.0" y="86.0" width="174.8" height="34" rx="5" fill="var(--bear)"><title>15m 승률: 39.7%</title></rect><text x="140" y="107.0" class="tick" text-anchor="end" font-size="13">15m</text><text x="332.8" y="107.0" class="barval" text-anchor="start">39.7%</text></svg>
+</div>
+
+<h3>윈도우별 성과 — 5m</h3>
+<div class="figwrap">
+<div class="fcap">30개 OOS 테스트 윈도우(각 30일)의 누적수익률. 양(+)윈도우는 30개 중 1개(2024-06)뿐.</div>
+<svg viewBox="0 0 900 250" width="100%" preserveAspectRatio="xMidYMid meet" role="img" style="max-width:900px"><line x1="60" y1="200.0" x2="840" y2="200.0" class="grid"/><text x="52" y="204.0" class="tick" text-anchor="end">-40%</text><line x1="60" y1="166.0" x2="840" y2="166.0" class="grid"/><text x="52" y="170.0" class="tick" text-anchor="end">-30%</text><line x1="60" y1="132.0" x2="840" y2="132.0" class="grid"/><text x="52" y="136.0" class="tick" text-anchor="end">-20%</text><line x1="60" y1="98.0" x2="840" y2="98.0" class="grid"/><text x="52" y="102.0" class="tick" text-anchor="end">-10%</text><line x1="60" y1="64.0" x2="840" y2="64.0" class="grid"/><text x="52" y="68.0" class="tick" text-anchor="end">0%</text><line x1="60" y1="30.0" x2="840" y2="30.0" class="grid"/><text x="52" y="34.0" class="tick" text-anchor="end">10%</text><rect x="64.9" y="64.0" width="16.1" height="113.5" rx="2" fill="var(--bear)"><title>window 7 (2021-06-24): -33.4% · trades=189</title></rect><text x="73.0" y="216" class="tickmut" text-anchor="middle" font-size="8.5">21-06</text><rect x="90.9" y="64.0" width="16.1" height="20.9" rx="2" fill="var(--bear)"><title>window 8 (2021-08-23): -6.1% · trades=179</title></rect><rect x="116.9" y="64.0" width="16.1" height="114.4" rx="2" fill="var(--bear)"><title>window 9 (2021-10-22): -33.6% · trades=248</title></rect><rect x="142.9" y="64.0" width="16.1" height="64.7" rx="2" fill="var(--bear)"><title>window 10 (2021-12-21): -19.0% · trades=161</title></rect><text x="151.0" y="216" class="tickmut" text-anchor="middle" font-size="8.5">21-12</text><rect x="168.9" y="64.0" width="16.1" height="61.4" rx="2" fill="var(--bear)"><title>window 11 (2022-02-19): -18.0% · trades=169</title></rect><rect x="194.9" y="64.0" width="16.1" height="78.3" rx="2" fill="var(--bear)"><title>window 12 (2022-04-20): -23.0% · trades=208</title></rect><rect x="220.9" y="64.0" width="16.1" height="114.8" rx="2" fill="var(--bear)"><title>window 13 (2022-06-19): -33.8% · trades=208</title></rect><text x="229.0" y="216" class="tickmut" text-anchor="middle" font-size="8.5">22-06</text><rect x="246.9" y="64.0" width="16.1" height="10.0" rx="2" fill="var(--bear)"><title>window 14 (2022-08-18): -2.9% · trades=63</title></rect><rect x="272.9" y="64.0" width="16.1" height="83.7" rx="2" fill="var(--bear)"><title>window 15 (2022-10-17): -24.6% · trades=104</title></rect><rect x="298.9" y="64.0" width="16.1" height="54.3" rx="2" fill="var(--bear)"><title>window 16 (2022-12-16): -16.0% · trades=90</title></rect><text x="307.0" y="216" class="tickmut" text-anchor="middle" font-size="8.5">22-12</text><rect x="324.9" y="64.0" width="16.1" height="85.2" rx="2" fill="var(--bear)"><title>window 17 (2023-02-14): -25.1% · trades=132</title></rect><rect x="350.9" y="64.0" width="16.1" height="28.1" rx="2" fill="var(--bear)"><title>window 18 (2023-04-15): -8.3% · trades=58</title></rect><rect x="376.9" y="64.0" width="16.1" height="20.2" rx="2" fill="var(--bear)"><title>window 19 (2023-06-14): -5.9% · trades=63</title></rect><text x="385.0" y="216" class="tickmut" text-anchor="middle" font-size="8.5">23-06</text><rect x="402.9" y="64.0" width="16.1" height="61.9" rx="2" fill="var(--bear)"><title>window 20 (2023-08-13): -18.2% · trades=149</title></rect><rect x="428.9" y="64.0" width="16.1" height="78.9" rx="2" fill="var(--bear)"><title>window 21 (2023-10-12): -23.2% · trades=188</title></rect><rect x="454.9" y="64.0" width="16.1" height="77.7" rx="2" fill="var(--bear)"><title>window 22 (2023-12-11): -22.9% · trades=165</title></rect><text x="463.0" y="216" class="tickmut" text-anchor="middle" font-size="8.5">23-12</text><rect x="480.9" y="64.0" width="16.1" height="53.0" rx="2" fill="var(--bear)"><title>window 23 (2024-02-09): -15.6% · trades=274</title></rect><rect x="506.9" y="64.0" width="16.1" height="1.0" rx="2" fill="var(--text-muted)"><title>window 24 (2024-04-09): +0.0% · trades=0</title></rect><rect x="532.9" y="50.0" width="16.1" height="14.0" rx="2" fill="var(--bull)"><title>window 25 (2024-06-08): +4.1% · trades=9</title></rect><text x="541.0" y="216" class="tickmut" text-anchor="middle" font-size="8.5">24-06</text><rect x="558.9" y="64.0" width="16.1" height="126.4" rx="2" fill="var(--bear)"><title>window 26 (2024-08-07): -37.2% · trades=186</title></rect><rect x="584.9" y="64.0" width="16.1" height="36.2" rx="2" fill="var(--bear)"><title>window 27 (2024-10-06): -10.7% · trades=83</title></rect><rect x="610.9" y="64.0" width="16.1" height="90.1" rx="2" fill="var(--bear)"><title>window 28 (2024-12-05): -26.5% · trades=128</title></rect><text x="619.0" y="216" class="tickmut" text-anchor="middle" font-size="8.5">24-12</text><rect x="636.9" y="64.0" width="16.1" height="101.4" rx="2" fill="var(--bear)"><title>window 29 (2025-02-03): -29.8% · trades=222</title></rect><rect x="662.9" y="64.0" width="16.1" height="106.7" rx="2" fill="var(--bear)"><title>window 30 (2025-04-04): -31.4% · trades=170</title></rect><rect x="688.9" y="64.0" width="16.1" height="10.1" rx="2" fill="var(--bear)"><title>window 31 (2025-06-03): -3.0% · trades=73</title></rect><text x="697.0" y="216" class="tickmut" text-anchor="middle" font-size="8.5">25-06</text><rect x="714.9" y="64.0" width="16.1" height="93.8" rx="2" fill="var(--bear)"><title>window 32 (2025-08-02): -27.6% · trades=228</title></rect><rect x="740.9" y="64.0" width="16.1" height="1.0" rx="2" fill="var(--text-muted)"><title>window 33 (2025-10-01): +0.0% · trades=0</title></rect><rect x="766.9" y="64.0" width="16.1" height="84.8" rx="2" fill="var(--bear)"><title>window 34 (2025-11-30): -24.9% · trades=93</title></rect><text x="775.0" y="216" class="tickmut" text-anchor="middle" font-size="8.5">25-11</text><rect x="792.9" y="64.0" width="16.1" height="99.2" rx="2" fill="var(--bear)"><title>window 35 (2026-01-29): -29.2% · trades=288</title></rect><rect x="818.9" y="64.0" width="16.1" height="1.0" rx="2" fill="var(--text-muted)"><title>window 36 (2026-03-30): +0.0% · trades=0</title></rect><text x="450.0" y="238" class="axl" text-anchor="middle">5m · OOS 테스트 윈도우 (30개, 2021-06~2026-03)</text></svg>
+</div>
+
+<h3>윈도우별 성과 — 15m</h3>
+<div class="figwrap">
+<div class="fcap">동일 구조, 15m. 5m보다는 소폭 낫지만(양윈도우 5/30) 여전히 게이트 기준(≥50%) 대비 크게 미달.</div>
+<svg viewBox="0 0 900 250" width="100%" preserveAspectRatio="xMidYMid meet" role="img" style="max-width:900px"><line x1="60" y1="200.0" x2="840" y2="200.0" class="grid"/><text x="52" y="204.0" class="tick" text-anchor="end">-40%</text><line x1="60" y1="166.0" x2="840" y2="166.0" class="grid"/><text x="52" y="170.0" class="tick" text-anchor="end">-30%</text><line x1="60" y1="132.0" x2="840" y2="132.0" class="grid"/><text x="52" y="136.0" class="tick" text-anchor="end">-20%</text><line x1="60" y1="98.0" x2="840" y2="98.0" class="grid"/><text x="52" y="102.0" class="tick" text-anchor="end">-10%</text><line x1="60" y1="64.0" x2="840" y2="64.0" class="grid"/><text x="52" y="68.0" class="tick" text-anchor="end">0%</text><line x1="60" y1="30.0" x2="840" y2="30.0" class="grid"/><text x="52" y="34.0" class="tick" text-anchor="end">10%</text><rect x="64.9" y="64.0" width="16.1" height="68.9" rx="2" fill="var(--bear)"><title>window 7 (2021-06-24): -20.3% · trades=130</title></rect><text x="73.0" y="216" class="tickmut" text-anchor="middle" font-size="8.5">21-06</text><rect x="90.9" y="38.6" width="16.1" height="25.4" rx="2" fill="var(--bull)"><title>window 8 (2021-08-23): +7.5% · trades=72</title></rect><rect x="116.9" y="64.0" width="16.1" height="60.8" rx="2" fill="var(--bear)"><title>window 9 (2021-10-22): -17.9% · trades=151</title></rect><rect x="142.9" y="64.0" width="16.1" height="36.5" rx="2" fill="var(--bear)"><title>window 10 (2021-12-21): -10.7% · trades=107</title></rect><text x="151.0" y="216" class="tickmut" text-anchor="middle" font-size="8.5">21-12</text><rect x="168.9" y="64.0" width="16.1" height="34.3" rx="2" fill="var(--bear)"><title>window 11 (2022-02-19): -10.1% · trades=56</title></rect><rect x="194.9" y="64.0" width="16.1" height="79.1" rx="2" fill="var(--bear)"><title>window 12 (2022-04-20): -23.3% · trades=166</title></rect><rect x="220.9" y="64.0" width="16.1" height="95.9" rx="2" fill="var(--bear)"><title>window 13 (2022-06-19): -28.2% · trades=149</title></rect><text x="229.0" y="216" class="tickmut" text-anchor="middle" font-size="8.5">22-06</text><rect x="246.9" y="51.5" width="16.1" height="12.5" rx="2" fill="var(--bull)"><title>window 14 (2022-08-18): +3.7% · trades=24</title></rect><rect x="272.9" y="64.0" width="16.1" height="28.0" rx="2" fill="var(--bear)"><title>window 15 (2022-10-17): -8.2% · trades=49</title></rect><rect x="298.9" y="64.0" width="16.1" height="54.8" rx="2" fill="var(--bear)"><title>window 16 (2022-12-16): -16.1% · trades=74</title></rect><text x="307.0" y="216" class="tickmut" text-anchor="middle" font-size="8.5">22-12</text><rect x="324.9" y="64.0" width="16.1" height="74.9" rx="2" fill="var(--bear)"><title>window 17 (2023-02-14): -22.0% · trades=72</title></rect><rect x="350.9" y="64.0" width="16.1" height="29.7" rx="2" fill="var(--bear)"><title>window 18 (2023-04-15): -8.7% · trades=33</title></rect><rect x="376.9" y="64.0" width="16.1" height="38.4" rx="2" fill="var(--bear)"><title>window 19 (2023-06-14): -11.3% · trades=49</title></rect><text x="385.0" y="216" class="tickmut" text-anchor="middle" font-size="8.5">23-06</text><rect x="402.9" y="64.0" width="16.1" height="24.3" rx="2" fill="var(--bear)"><title>window 20 (2023-08-13): -7.1% · trades=153</title></rect><rect x="428.9" y="64.0" width="16.1" height="41.9" rx="2" fill="var(--bear)"><title>window 21 (2023-10-12): -12.3% · trades=108</title></rect><rect x="454.9" y="64.0" width="16.1" height="41.8" rx="2" fill="var(--bear)"><title>window 22 (2023-12-11): -12.3% · trades=75</title></rect><text x="463.0" y="216" class="tickmut" text-anchor="middle" font-size="8.5">23-12</text><rect x="480.9" y="41.1" width="16.1" height="22.9" rx="2" fill="var(--bull)"><title>window 23 (2024-02-09): +6.7% · trades=164</title></rect><rect x="506.9" y="64.0" width="16.1" height="1.0" rx="2" fill="var(--text-muted)"><title>window 24 (2024-04-09): +0.0% · trades=0</title></rect><rect x="532.9" y="61.7" width="16.1" height="2.3" rx="2" fill="var(--bull)"><title>window 25 (2024-06-08): +0.7% · trades=5</title></rect><text x="541.0" y="216" class="tickmut" text-anchor="middle" font-size="8.5">24-06</text><rect x="558.9" y="64.0" width="16.1" height="66.3" rx="2" fill="var(--bear)"><title>window 26 (2024-08-07): -19.5% · trades=123</title></rect><rect x="584.9" y="64.0" width="16.1" height="12.0" rx="2" fill="var(--bear)"><title>window 27 (2024-10-06): -3.5% · trades=43</title></rect><rect x="610.9" y="64.0" width="16.1" height="67.6" rx="2" fill="var(--bear)"><title>window 28 (2024-12-05): -19.9% · trades=74</title></rect><text x="619.0" y="216" class="tickmut" text-anchor="middle" font-size="8.5">24-12</text><rect x="636.9" y="64.0" width="16.1" height="62.3" rx="2" fill="var(--bear)"><title>window 29 (2025-02-03): -18.3% · trades=175</title></rect><rect x="662.9" y="64.0" width="16.1" height="74.3" rx="2" fill="var(--bear)"><title>window 30 (2025-04-04): -21.9% · trades=125</title></rect><rect x="688.9" y="57.8" width="16.1" height="6.2" rx="2" fill="var(--bull)"><title>window 31 (2025-06-03): +1.8% · trades=39</title></rect><text x="697.0" y="216" class="tickmut" text-anchor="middle" font-size="8.5">25-06</text><rect x="714.9" y="64.0" width="16.1" height="86.2" rx="2" fill="var(--bear)"><title>window 32 (2025-08-02): -25.4% · trades=163</title></rect><rect x="740.9" y="64.0" width="16.1" height="1.0" rx="2" fill="var(--text-muted)"><title>window 33 (2025-10-01): +0.0% · trades=0</title></rect><rect x="766.9" y="64.0" width="16.1" height="47.3" rx="2" fill="var(--bear)"><title>window 34 (2025-11-30): -13.9% · trades=68</title></rect><text x="775.0" y="216" class="tickmut" text-anchor="middle" font-size="8.5">25-11</text><rect x="792.9" y="64.0" width="16.1" height="56.8" rx="2" fill="var(--bear)"><title>window 35 (2026-01-29): -16.7% · trades=166</title></rect><rect x="818.9" y="64.0" width="16.1" height="1.0" rx="2" fill="var(--text-muted)"><title>window 36 (2026-03-30): +0.0% · trades=0</title></rect><text x="450.0" y="238" class="axl" text-anchor="middle">15m · OOS 테스트 윈도우 (30개, 2021-06~2026-03)</text></svg>
+</div>
+
+<h2>4. 왜 실패했나 — 수수료가 봉 변동폭을 먹는다</h2>
+<p class="interp">구조적 원인은 단순하다: <b>5m·15m 봉의 가격변동폭이 왕복 거래비용(약 0.18%) 대비 너무 작다.</b> 신호 방향이 맞아도 비용이 그 이득을 상쇄한다. 아래는 실제 거래당 평균 손익(<code>total_pnl / trades</code>)과 거래비용을 나란히 비교한 것이다 — 두 타임프레임 모두 <b>평균 손실이 거래비용과 거의 같은 크기</b>로, gross(비용 전) 엣지가 사실상 0이었음을 보여준다.</p>
+<div class="figwrap">
+<div class="fcap">거래당 평균 손실(파랑 대비 빨강 막대)이 거래비용(파랑)에 근접 — net 손실 ≈ 비용, gross 엣지 ≈ 0.</div>
+<svg viewBox="0 0 620 200" width="100%" preserveAspectRatio="xMidYMid meet" role="img" style="max-width:620px"><line x1="150.0" y1="26" x2="150.0" y2="164.0" class="grid"/><text x="150.0" y="182.0" class="tick" text-anchor="middle">0.00%</text><line x1="250.0" y1="26" x2="250.0" y2="164.0" class="grid"/><text x="250.0" y="182.0" class="tick" text-anchor="middle">0.05%</text><line x1="350.0" y1="26" x2="350.0" y2="164.0" class="grid"/><text x="350.0" y="182.0" class="tick" text-anchor="middle">0.10%</text><line x1="450.0" y1="26" x2="450.0" y2="164.0" class="grid"/><text x="450.0" y="182.0" class="tick" text-anchor="middle">0.15%</text><line x1="550.0" y1="26" x2="550.0" y2="164.0" class="grid"/><text x="550.0" y="182.0" class="tick" text-anchor="middle">0.20%</text><rect x="150.0" y="30.0" width="360.0" height="30" rx="5" fill="var(--series-1)"><title>거래비용 (taker 0.08%×2+슬리피지10bp): 0.180%/거래</title></rect><text x="150" y="24.0" class="tick" font-size="11.5">거래비용 (taker 0.08%×2+슬리피지10bp)</text><text x="518.0" y="49.0" class="barval" text-anchor="start">0.180%</text><rect x="150.0" y="80.0" width="296.0" height="30" rx="5" fill="var(--bear)"><title>5m 평균 손익/거래: 0.148%/거래</title></rect><text x="150" y="74.0" class="tick" font-size="11.5">5m 평균 손익/거래</text><text x="454.0" y="99.0" class="barval" text-anchor="start">0.148%</text><rect x="150.0" y="130.0" width="264.0" height="30" rx="5" fill="var(--bear)"><title>15m 평균 손익/거래: 0.132%/거래</title></rect><text x="150" y="124.0" class="tick" font-size="11.5">15m 평균 손익/거래</text><text x="422.0" y="149.0" class="barval" text-anchor="start">0.132%</text></svg>
+</div>
+<ul>
+<li>taker/market 주문 + 잦은 회전(30일 test당 5m 트레이드 중앙값 ~150건) = 스캘핑 고유의 비용 구조적 약점.</li>
+<li>승률 39~40% (동전던지기 이하)은 신호가 단기봉에서 <b>anti-predictive</b>에 가깝다는 뜻이다 — 방향이 맞을 확률 자체가 이미 낮다.</li>
+<li>BTC search-depth 실험에서 확인된 "깊게 검색할수록 OOS 개선" 효과가 단기봉 ETH엔 전이되지 않았다 — 1년 깊은검색도 결과를 살리지 못함(§3 표).</li>
+<li>엣지는 지금까지 BTC에서만 증명되었다 — ETH에 동일 엣지가 존재한다는 가정 자체가 검증 없이는 위험(eth-multi-symbol 캐비엇과 일치).</li>
+</ul>
+
+<h2>5. 결론 · 재개 조건</h2>
+<div class="gonogobox">
+<p class="interp" style="margin:0"><b>기각 (5m + 15m 모두 NO-GO).</b> 사전등록 GO 조건 3개(sharpe&gt;0, 양윈도우≥50%, cum_return&gt;buy_hold) 전부 위반. ETH 단기봉 스캘핑 트랙 종료 — 사용자 결정 2026-06-25. Phase 2(튜닝) 이후 단계는 착수하지 않았다.</p>
+</div>
+<p><b>타임프레임 문제가 아니다.</b> 5m→15m로 봉 주기를 3배 늘려도 임계를 넘지 못했다 — 이 엔진의 엣지는 단기봉 자체에 없고, 검증된 엣지는 <b>1h+(현행 BTC 1h 봇)</b>에서만 유효하다.</p>
+<h3>재개 조건 (다음에 이 트랙을 다시 열려면)</h3>
+<ol>
+<li><b>maker/limit 주문</b> — 수수료를 절반 이하로 낮출 수 있으나 미체결·부분체결 처리 로직이 필요한 큰 아키텍처 변경.</li>
+<li><b>마이크로구조 데이터</b> — 오더북/틱 단위 신호로 현재와 직교하는 엣지를 새로 검증. 데이터 비용·인프라 재구축이 큼.</li>
+<li>(비권장) exit 비용비중 희석 — hold/target을 키워 거래당 비용 비중을 낮추는 방향이나, 이는 사실상 5m 진입의 의미를 지우고 15m/1h 봇에 수렴한다.</li>
+</ol>
+<p>재개 유일 경로로 남긴 것은 위 1·2이며, 둘 다 현재 시점에서 착수하지 않는다. 산출물(fixture, walk-forward 스크립트, summary.json)은 재사용 가능하도록 보존.</p>
+
+<h2>6. 한계</h2>
+<ul>
+<li><b>15m 검증 데이터의 독립성</b>: 15m은 별도로 수집한 것이 아니라 5m fixture를 리샘플한 것이다. 두 타임프레임 결과가 완전히 독립적인 시장 데이터라고 보기는 어렵다(다만 결론 방향은 동일).</li>
+<li><b>1년 검색깊이 원본 미보존</b>: <code>reports/eth5m_wf/</code>·<code>eth15m_wf/</code> summary.json에는 최근 1,500봉 depth만 원본이 남아 있다. 1년(105k/35k봉) depth 수치는 wiki(<code>eth-5m-scalp-no-go.md</code>)와 <code>.ai/planner/eth_scalp_5m_plan.md</code> 서사 기록을 인용한 것으로, 이 보고서가 직접 raw json으로 재검증하지 못했다.</li>
+<li><b>2020+ 전체 검색깊이 미실행</b>: 최근 1,500봉 단계에서 이미 압도적 NO-GO(양윈도우 1~5/30)가 확정되어 가장 넓은 검색깊이(2020+ 전체)는 실행하지 않았다 — 리소스 절약 판단이나, 이론적으로 완전히 배제하진 못한다.</li>
+<li><b>청산 anchor 고정</b>: hold/stop/target 조합(2h·−1.5%·+3%)을 사전등록대로 고정 평가했다. 이 특정 조합이 최적이 아닐 가능성은 있으나, Phase 1 게이트 취지상 튜닝 이전에 baseline 엣지 존재 여부를 먼저 봐야 하므로 의도된 설계다.</li>
+<li><b>확률적 판단이지 예언이 아니다</b>: 본 보고서는 사전등록된 30개 OOS 윈도우에서 관측된 결과이며, 향후 시장 구조가 동일하게 유지된다는 보장은 없다.</li>
+</ul>
+
+<p class="foot">근거 수치: <code>reports/eth5m_wf/summary.json</code>(최근 1,500봉, 5m) · <code>reports/eth15m_wf/summary.json</code>(최근 1,500봉, 15m) · 서사 교차 대조 <code>.ai/planner/eth_scalp_5m_plan.md</code>, wiki <code>synthesis/eth-5m-scalp-no-go.md</code> · 시각 표기 JST · 완전 자기완결(외부 네트워크/폰트/CDN 0) · 확률적/사후 통계 진술이며 투자 조언 아님.</p>
+</div>
+</body>
+</html>

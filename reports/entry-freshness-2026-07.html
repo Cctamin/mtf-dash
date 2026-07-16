@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>진입 신선도 필터 검증 — 기각 보고서</title>
+</head>
+<body>
+<style>
+:root {
+  --bull:#008300; --neut:#eda100; --bear:#e34948;
+  --bull-rgb:0,131,0; --bear-rgb:227,73,72;
+  --series-1:#2a78d6;
+  --surface:#fcfcfb; --surface-2:#f4f3f0; --card:#ffffff;
+  --text-primary:#0b0b0b; --text-secondary:#52514e; --text-muted:#86847e;
+  --border:#e3e1db; --grid:#ecece6;
+  --ok:#0ca30c; --bad:#d03b3b;
+}
+:root[data-theme="dark"], :root:not([data-theme="light"]) {}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bull:#22a722; --neut:#c98500; --bear:#e66767;
+    --bull-rgb:34,167,34; --bear-rgb:230,103,103;
+    --series-1:#3987e5;
+    --surface:#141413; --surface-2:#1f1f1d; --card:#1a1a19;
+    --text-primary:#f5f4ee; --text-secondary:#c3c2b7; --text-muted:#8f8d84;
+    --border:#33322e; --grid:#2a2a27;
+    --ok:#3cc23c; --bad:#e66767;
+  }
+}
+:root[data-theme="dark"] {
+    --bull:#22a722; --neut:#c98500; --bear:#e66767;
+    --bull-rgb:34,167,34; --bear-rgb:230,103,103;
+    --series-1:#3987e5;
+    --surface:#141413; --surface-2:#1f1f1d; --card:#1a1a19;
+    --text-primary:#f5f4ee; --text-secondary:#c3c2b7; --text-muted:#8f8d84;
+    --border:#33322e; --grid:#2a2a27;
+    --ok:#3cc23c; --bad:#e66767;
+}
+* { box-sizing:border-box; }
+body { margin:0; background:var(--surface); color:var(--text-primary);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Helvetica Neue","Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+  line-height:1.65; font-size:15px; -webkit-font-smoothing:antialiased; }
+.wrap { max-width:940px; margin:0 auto; padding:32px 22px 80px; }
+h1 { font-size:27px; font-weight:750; letter-spacing:-0.02em; margin:0 0 6px; }
+h2 { font-size:20px; font-weight:700; letter-spacing:-0.01em; margin:52px 0 6px; padding-top:18px; border-top:1px solid var(--border); }
+h3 { font-size:15px; font-weight:700; margin:26px 0 8px; color:var(--text-primary); }
+.sub { color:var(--text-muted); font-size:13px; margin:0 0 6px; }
+p { margin:10px 0; color:var(--text-secondary); }
+p.interp { color:var(--text-primary); }
+b, strong { color:var(--text-primary); font-weight:650; }
+.card { background:var(--card); border:1px solid var(--border); border-radius:14px; padding:20px 22px; margin:18px 0; }
+.tldr { border-left:4px solid var(--series-1); }
+.figwrap { background:var(--card); border:1px solid var(--border); border-radius:14px; padding:16px 14px 8px; margin:16px 0; overflow-x:auto; }
+.fcap { font-size:12.5px; color:var(--text-muted); margin:2px 4px 8px; }
+.grid-tiles { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px; margin:14px 0; }
+.tile { background:var(--surface-2); border:1px solid var(--border); border-radius:12px; padding:14px 16px; }
+.tile .k { font-size:12px; color:var(--text-muted); margin-bottom:3px; }
+.tile .v { font-size:23px; font-weight:750; letter-spacing:-0.02em; }
+.tile .v.sm { font-size:17px; }
+.tile .ci { font-size:11.5px; color:var(--text-muted); }
+.bull { color:var(--bull); } .bear { color:var(--bear); } .neut { color:var(--neut); }
+table { border-collapse:collapse; width:100%; font-size:13.5px; margin:12px 0; }
+th,td { text-align:left; padding:7px 10px; border-bottom:1px solid var(--border); }
+th { color:var(--text-muted); font-weight:600; font-size:12px; text-transform:uppercase; letter-spacing:0.03em; }
+td.mut { color:var(--text-muted); }
+td.ok { color:var(--ok); font-weight:700; } td.bad { color:var(--bad); font-weight:700; }
+tr.unrel td { color:var(--text-muted); }
+.warnbadge { display:inline-block; font-size:10.5px; background:rgba(208,59,59,.14); color:var(--bad); padding:1px 6px; border-radius:6px; margin-left:4px; }
+.curbadge { display:inline-block; font-size:10.5px; background:var(--series-1); color:#fff; padding:1px 7px; border-radius:6px; margin-left:5px; font-weight:700; }
+.chip { display:inline-block; border:1px solid var(--border); border-radius:20px; padding:4px 14px; margin:3px 6px 3px 0; font-size:12.5px; color:var(--text-secondary); background:var(--surface-2); }
+.pathflow-cap { font-size:12px; color:var(--text-muted); margin:8px 4px 0; }
+.legend { display:flex; gap:18px; flex-wrap:wrap; margin:4px 4px 10px; font-size:12.5px; color:var(--text-secondary); }
+.legend span { display:inline-flex; align-items:center; gap:6px; }
+.sw { width:11px; height:11px; border-radius:3px; display:inline-block; }
+.grid { stroke:var(--grid); stroke-width:1; }
+.tick { fill:var(--text-muted); font-size:11px; }
+.tickmut { fill:var(--text-muted); font-size:9.5px; }
+.axl { fill:var(--text-secondary); font-size:11.5px; }
+.dlabel { font-size:11.5px; font-weight:650; }
+.barval { fill:var(--text-primary); font-size:12px; font-weight:700; }
+.warnbox { background:rgba(237,161,0,.10); border:1px solid rgba(237,161,0,.35); border-radius:12px; padding:14px 18px; margin:16px 0; font-size:13.5px; }
+ul { color:var(--text-secondary); } li { margin:4px 0; }
+code { background:var(--surface-2); padding:1px 5px; border-radius:5px; font-size:12.5px; }
+.foot { color:var(--text-muted); font-size:12px; margin-top:40px; }
+.scgrid { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+@media (max-width:640px) { .scgrid { grid-template-columns:1fr; } h1{font-size:23px;} }
+@media print {
+  :root { color-scheme: light; }
+  html, body { background:#fff !important; }
+  .wrap { max-width:100%; padding:6mm 4mm; margin:0; }
+  @page { size:A4 portrait; margin:12mm 10mm; }
+  h1,h2,h3,h4 { break-after:avoid; page-break-after:avoid; }
+  h2 { margin-top:20px; }
+  .card, .figwrap, .warnbox, table, .grid-tiles, .scgrid, svg, .chip, .tile {
+    break-inside:avoid; page-break-inside:avoid;
+  }
+  .scgrid { grid-template-columns:1fr 1fr; }
+  .grid-tiles { grid-template-columns:repeat(3,1fr); }
+  tr { break-inside:avoid; page-break-inside:avoid; }
+  thead { display:table-header-group; }
+  a[href]:after { content:""; }
+  div[style*="overflow-x"] { overflow:visible !important; }
+  div[style*="overflow-x"] table { table-layout:fixed; width:100%; font-size:7.6pt; }
+  div[style*="overflow-x"] table th,
+  div[style*="overflow-x"] table td { word-break:break-word; overflow-wrap:anywhere; padding:4px 5px; }
+  div[style*="overflow-x"] table td[style*="font-size"] { font-size:7.2pt !important; }
+}
+</style>
+
+<div class="wrap">
+<h1>진입 신선도 필터 검증 — 기각</h1>
+<p class="sub">BTC/USDT · 1h 워크포워드 페어드 비교(2020+ 56k봉) · 실험 2026-07-03 · 문서화 2026-07-16 JST</p>
+
+<div class="card tldr">
+<h3 style="margin-top:0">TL;DR</h3>
+<div>
+<span class="chip">가설 <b>「7일 레인지 하단 20% 이내 추격숏 금지」veto</b></span>
+<span class="chip">1차(8윈도우) <b class="ok" style="color:var(--ok)">sym_10 ADOPT</b> (근소)</span>
+<span class="chip">강건성 재검증(4런) <b class="bad" style="color:var(--bad)">기각</b></span>
+<span class="chip">봇 <b>무변경</b></span>
+</div>
+<p class="interp" style="margin-top:14px">라이브 복기(2026-07-02, 트레이드 9건)에서 <b>7일 레인지 하단 20% 이내 추격 숏 4건</b>이 합계 <b class="bear">−7.1%p</b>, 나머지 5건이 합계 <b class="bull">+4.0%p</b>를 기록해 「과확장 존 진입 금지」 veto 후보가 나왔다. 1차 8윈도우 하네스에서는 6개 변형 중 <b>sym_10 하나만 ADOPT</b>(누적수익 Δ+0.082 / sharpe Δ+0.473 / 승률 Δ+1.5%p, 8윈도우 중 5·5·6승)로 조건부 통과했지만, 5/8라는 근소한 다수와 6변형 중 1개만 통과했다는 점에서 강건성 재검증을 실시했다. <b>그리드 섭동(A)은 체커보드로 일관된 고원이 없었고, 무엇보다 윈도우 경계를 반 칸(3,531봉)만 밀어도(D) 효과가 완전히 음(−)으로 반전</b>했다(cum Δ−0.121, sharpe Δ−0.290, 개선 2/8). 결론: 1차 ADOPT는 <b>특정 분할의 우연</b>이며 OOS에서 재현되는 구조적 엣지가 아니다. <b>봇은 무변경.</b></p>
+</div>
+<div class="warnbox">⚠ 이 문서는 <b>기각된 실험의 기록</b>이다 — 아래 수치·차트는 "채택 근거"가 아니라 "왜 기각했는가"의 증거다. 게이트 교훈: 단일 분할 ADOPT는 불충분, 분할 섭동(개수·시프트) + 파라미터 이웃 고원까지 확인해야 한다.</div>
+
+<h2>1. 동기 — 라이브 복기에서 발견한 패턴</h2>
+<p>2026-07-02 라이브(testnet) 복기에서 트레이드 9건 중 <b>7일(168봉) 레인지 하단 20% 이내에서 진입한 추격 숏 4건</b>이 합계 <b class="bear">−7.1%p</b>를 기록한 반면, 나머지 5건은 합계 <b class="bull">+4.0%p</b>였다. 과확장(레인지 극단) 근처에서의 추격 진입이 손실 패턴일 수 있다는 가설을 세우고, 다음 정의로 veto 규칙을 만들어 워크포워드로 검증했다.</p>
+<div class="figwrap" style="padding:14px 18px">
+<code style="display:block; padding:8px 10px">pos = (close − min(low, 168)) / (max(high, 168) − min(low, 168))</code>
+<p class="fcap" style="margin:8px 2px 0">숏은 <code>pos &lt; X</code>에서 veto, 롱은 <code>pos &gt; 1−X</code>에서 veto. <code>short_*</code> = 숏 전용, <code>sym_*</code> = 양방향(롱·숏 대칭) veto. X는 %.</p>
+</div>
+
+<h2>2. 1차 검증 — 8윈도우 페어드 비교</h2>
+<p>스크립트 <code>scripts/walk_forward_entry_freshness.py</code>: 신호는 윈도우당 1회 생성하고 veto는 진입 마스크만 제거하는 순수 페어드 비교(2020+ 1h 56,000여 봉, lookback 168, pattern_length 60, top_k 30, 8윈도우). X∈{10,20,30}% × {short, sym} 6변형을 base 대비 비교했다.</p>
+<div class="figwrap">
+<div class="fcap">6변형의 base 대비 평균 델타(8윈도우 평균) · 판정은 세 지표(누적수익·sharpe·승률) 다수결 기준(<code>reports/walk_forward_entry_freshness/summary.json</code>).</div>
+<div style="overflow-x:auto">
+<table>
+<tr><th>변형</th><th>정의</th><th>cum Δ (평균)</th><th>sharpe Δ (평균)</th><th>win Δ (평균, pp)</th><th>개선 윈도우</th><th>판정</th></tr>
+<tr><td>short_10</td><td class="mut">pos&lt;10%, 숏전용</td><td class="bad">−0.030</td><td class="bad">−0.029</td><td class="bad">−0.04</td><td class="mut">4/8 · 4/8 · 4/8</td><td class="bad">REJECT</td></tr>
+<tr style="background:rgba(var(--bull-rgb),.06)"><td><b>sym_10</b></td><td class="mut">pos&lt;10% 숏 / pos&gt;90% 롱</td><td class="ok">+0.082</td><td class="ok">+0.473</td><td class="ok">+1.46</td><td class="mut">5/8 · 5/8 · 6/8</td><td class="ok">ADOPT</td></tr>
+<tr><td>short_20</td><td class="mut">pos&lt;20%, 숏전용</td><td class="bad">−0.060</td><td class="bad">−0.126</td><td class="ok">+1.03</td><td class="mut">5/8 · 4/8 · 5/8</td><td style="color:var(--neut); font-weight:700">MIXED</td></tr>
+<tr><td>sym_20</td><td class="mut">pos&lt;20% / pos&gt;80%</td><td class="ok">+0.008</td><td class="bad">−0.124</td><td class="ok">+0.42</td><td class="mut">4/8 · 4/8 · 5/8</td><td style="color:var(--neut); font-weight:700">MIXED</td></tr>
+<tr><td>short_30</td><td class="mut">pos&lt;30%, 숏전용</td><td class="bad">−0.059</td><td class="bad">−0.228</td><td class="ok">+1.62</td><td class="mut">4/8 · 4/8 · 6/8</td><td style="color:var(--neut); font-weight:700">MIXED</td></tr>
+<tr><td>sym_30</td><td class="mut">pos&lt;30% / pos&gt;70%</td><td class="bad">−0.231</td><td class="bad">−0.544</td><td class="ok">+0.28</td><td class="mut">3/8 · 3/8 · 4/8</td><td class="bad">REJECT</td></tr>
+</table>
+</div>
+</div>
+<p class="interp">숏 전용 3종(short_10/20/30)은 어느 X에서도 ADOPT가 없다 — 롱사이드까지 대칭으로 veto해야(sym 계열) 효과가 났다는 뜻이다. sym 계열은 <b>X가 10→20→30%로 커질수록 cum Δ가 +0.082 → +0.008 → −0.231로 단조 악화</b>한다 — 필터를 과도하게 좁히면(과필터) 오히려 알파를 함께 제거한다. 6변형 중 <b>sym_10 하나만 ADOPT</b>였고 그마저 개선 윈도우가 5·5·6/8로 근소한 다수였다.</p>
+
+<h2>3. 강건성 재검증 — 4런 → 전멸</h2>
+<p>sym_10의 ADOPT가 우연인지 확인하기 위해 4가지 섭동으로 재검증했다(스크립트에 <code>--veto-levels/--lookbacks/--families/--offset-bars</code> 확장).</p>
+<div style="overflow-x:auto">
+<table>
+<tr><th>런</th><th>설계</th><th>sym_10 결과</th><th>판정</th></tr>
+<tr><td><b>A 그리드</b></td><td class="mut">X∈{5,8,10,12,15}% × lookback∈{120,168,216}, 8윈도우</td><td class="mut">ADOPT/MIXED 체커보드 — 이웃(8%·12%, lb216)에서 뒤집힘, 일관된 고원 없음</td><td style="color:var(--neut); font-weight:700">체커보드</td></tr>
+<tr><td><b>B 6윈도우</b></td><td class="mut">분할 개수 8→6</td><td class="mut">cum·sharpe 델타 median 음전환</td><td style="color:var(--neut); font-weight:700">MIXED</td></tr>
+<tr><td><b>C 12윈도우</b></td><td class="mut">분할 개수 8→12</td><td class="mut">여전히 통과</td><td class="ok">ADOPT</td></tr>
+<tr style="background:rgba(var(--bear-rgb),.07)"><td><b>D 경계 시프트</b></td><td class="mut">시작점 +3,531봉(반 윈도우) 이동, 8윈도우</td><td class="bad">cum Δ−0.121, sharpe Δ−0.290, 개선 2/8 (1차 5/8 대비 완전 반전)</td><td class="bad">REJECT</td></tr>
+</table>
+</div>
+<p class="interp">4런 중 <b>2개(A·B)는 불안정, 1개(D)는 완전 반전</b>이었다. C(12윈도우)만 통과했지만 나머지 3런의 붕괴 앞에서는 그 자체가 우연한 분할의 재현일 뿐 근거가 되지 못한다. 특히 D는 파라미터를 전혀 바꾸지 않고 <b>윈도우 경계만 반 칸 밀었을 뿐인데 부호가 완전히 뒤집혔다</b> — 이는 오버피팅의 전형 패턴([[overfitting]] · [[exit-rule-evaluation]]과 동일: in-sample/특정 분할 최고 성과가 섭동에 붕괴)이다.</p>
+
+<h3>A. 그리드 섭동 — 판정 체커보드</h3>
+<div class="figwrap">
+<div class="fcap">X(veto 강도, %) × lookback(봉) 5×3 그리드의 판정. 초록=ADOPT, 주황=MIXED. sym_10_lb168(★)가 1차 검증과 동일 지점 — 바로 옆(X=8%·12%, lb=216)에서 판정이 뒤집혀 "고원"이 없다.</div>
+<svg viewBox="0 0 560 200" width="100%" preserveAspectRatio="xMidYMid meet" role="img" style="max-width:560px">
+<text x="70" y="20" class="axl" font-size="11.5">lookback \ X</text>
+<text x="117.5" y="20" class="tick" text-anchor="middle">5%</text>
+<text x="212.5" y="20" class="tick" text-anchor="middle">8%</text>
+<text x="307.5" y="20" class="tick" text-anchor="middle">10%</text>
+<text x="402.5" y="20" class="tick" text-anchor="middle">12%</text>
+<text x="497.5" y="20" class="tick" text-anchor="middle">15%</text>
+<text x="65" y="55" class="tick" text-anchor="end">120</text>
+<text x="65" y="97" class="tick" text-anchor="end">168</text>
+<text x="65" y="139" class="tick" text-anchor="end">216</text>
+<rect x="70" y="30" width="95" height="42" rx="5" fill="var(--neut)" fill-opacity="0.85"/><text x="117.5" y="55" class="dlabel" text-anchor="middle" fill="#fff">MIXED</text>
+<rect x="165" y="30" width="95" height="42" rx="5" fill="var(--ok)" fill-opacity="0.85"/><text x="212.5" y="55" class="dlabel" text-anchor="middle" fill="#fff">ADOPT</text>
+<rect x="260" y="30" width="95" height="42" rx="5" fill="var(--ok)" fill-opacity="0.85"/><text x="307.5" y="55" class="dlabel" text-anchor="middle" fill="#fff">ADOPT</text>
+<rect x="355" y="30" width="95" height="42" rx="5" fill="var(--ok)" fill-opacity="0.85"/><text x="402.5" y="55" class="dlabel" text-anchor="middle" fill="#fff">ADOPT</text>
+<rect x="450" y="30" width="95" height="42" rx="5" fill="var(--neut)" fill-opacity="0.85"/><text x="497.5" y="55" class="dlabel" text-anchor="middle" fill="#fff">MIXED</text>
+<rect x="70" y="72" width="95" height="42" rx="5" fill="var(--ok)" fill-opacity="0.85"/><text x="117.5" y="97" class="dlabel" text-anchor="middle" fill="#fff">ADOPT</text>
+<rect x="165" y="72" width="95" height="42" rx="5" fill="var(--neut)" fill-opacity="0.85"/><text x="212.5" y="97" class="dlabel" text-anchor="middle" fill="#fff">MIXED</text>
+<rect x="260" y="72" width="95" height="42" rx="5" fill="var(--ok)" fill-opacity="0.85" stroke="var(--text-primary)" stroke-width="2.5"/><text x="307.5" y="93" class="dlabel" text-anchor="middle" fill="#fff">ADOPT</text><text x="307.5" y="107" class="dlabel" text-anchor="middle" fill="#fff" font-size="10">★ 1차 지점</text>
+<rect x="355" y="72" width="95" height="42" rx="5" fill="var(--neut)" fill-opacity="0.85"/><text x="402.5" y="97" class="dlabel" text-anchor="middle" fill="#fff">MIXED</text>
+<rect x="450" y="72" width="95" height="42" rx="5" fill="var(--neut)" fill-opacity="0.85"/><text x="497.5" y="97" class="dlabel" text-anchor="middle" fill="#fff">MIXED</text>
+<rect x="70" y="114" width="95" height="42" rx="5" fill="var(--ok)" fill-opacity="0.85"/><text x="117.5" y="139" class="dlabel" text-anchor="middle" fill="#fff">ADOPT</text>
+<rect x="165" y="114" width="95" height="42" rx="5" fill="var(--neut)" fill-opacity="0.85"/><text x="212.5" y="139" class="dlabel" text-anchor="middle" fill="#fff">MIXED</text>
+<rect x="260" y="114" width="95" height="42" rx="5" fill="var(--neut)" fill-opacity="0.85"/><text x="307.5" y="139" class="dlabel" text-anchor="middle" fill="#fff">MIXED</text>
+<rect x="355" y="114" width="95" height="42" rx="5" fill="var(--ok)" fill-opacity="0.85"/><text x="402.5" y="139" class="dlabel" text-anchor="middle" fill="#fff">ADOPT</text>
+<rect x="450" y="114" width="95" height="42" rx="5" fill="var(--neut)" fill-opacity="0.85"/><text x="497.5" y="139" class="dlabel" text-anchor="middle" fill="#fff">MIXED</text>
+</svg>
+<div class="legend"><span><span class="sw" style="background:var(--ok)"></span>ADOPT</span><span><span class="sw" style="background:var(--neut)"></span>MIXED</span></div>
+</div>
+
+<h3>D. 경계 시프트 — 반전 폭</h3>
+<div class="scgrid">
+<div class="figwrap">
+<div class="fcap">누적수익 Δ(base 대비), 8윈도우 평균. 1차(오프셋 0) vs D(오프셋 +3,531봉).</div>
+<svg viewBox="0 0 300 220" width="100%" preserveAspectRatio="xMidYMid meet" role="img" style="max-width:300px">
+<line x1="20" y1="94" x2="280" y2="94" class="grid" stroke="var(--text-muted)" stroke-width="1"/>
+<text x="286" y="98" class="tick" text-anchor="start">0</text>
+<rect x="70" y="41.5" width="70" height="52.5" rx="4" fill="var(--bull)"/>
+<text x="105" y="35" class="barval" text-anchor="middle">+0.082</text>
+<text x="105" y="210" class="tick" text-anchor="middle">1차 (오프셋 0)</text>
+<rect x="180" y="94" width="70" height="77.4" rx="4" fill="var(--bear)"/>
+<text x="215" y="185" class="barval" text-anchor="middle">−0.121</text>
+<text x="215" y="210" class="tick" text-anchor="middle">D (오프셋 +3531봉)</text>
+</svg>
+</div>
+<div class="figwrap">
+<div class="fcap">Sharpe-like Δ(base 대비), 8윈도우 평균. 동일 두 런 비교.</div>
+<svg viewBox="0 0 300 220" width="100%" preserveAspectRatio="xMidYMid meet" role="img" style="max-width:300px">
+<line x1="20" y1="126" x2="280" y2="126" class="grid" stroke="var(--text-muted)" stroke-width="1"/>
+<text x="286" y="130" class="tick" text-anchor="start">0</text>
+<rect x="70" y="50.3" width="70" height="75.7" rx="4" fill="var(--bull)"/>
+<text x="105" y="44" class="barval" text-anchor="middle">+0.473</text>
+<text x="105" y="210" class="tick" text-anchor="middle">1차 (오프셋 0)</text>
+<rect x="180" y="126" width="70" height="46.4" rx="4" fill="var(--bear)"/>
+<text x="215" y="185" class="barval" text-anchor="middle">−0.290</text>
+<text x="215" y="210" class="tick" text-anchor="middle">D (오프셋 +3531봉)</text>
+</svg>
+</div>
+</div>
+<p class="fcap" style="margin:0 4px">두 차트 모두 y=0(회색 기준선) 위=개선, 아래=악화. 파라미터·데이터는 동일, <b>윈도우 시작점만 반 윈도우(3,531봉) 이동</b>했을 뿐인데 부호가 완전히 뒤집힌다.</p>
+
+<h2>4. 결론</h2>
+<ul>
+<li><b>기각. 봇 무변경.</b> 라이브 n=9의 "추격 숏 손실" 패턴은 OOS 워크포워드에서 재현되는 구조적 엣지가 아니다.</li>
+<li>1차 8윈도우의 sym_10 ADOPT는 <b>특정 분할(8윈도우, 오프셋 0)의 우연</b>이었다 — 그리드 섭동은 고원 없이 체커보드, 경계를 반 칸만 밀어도 부호가 뒤집힌다.</li>
+<li><b>게이트 룰 재확인</b>: 단일 분할 ADOPT만으로는 채택 근거가 되지 않는다. 앞으로 신규 필터/veto 후보는 <b>분할 섭동(윈도우 개수·경계 시프트) + 파라미터 이웃 고원</b>까지 확인해야 ADOPT로 인정한다.</li>
+<li>동일 실패 패턴이 [[exit-rule-evaluation]]에서도 관찰된 바 있다 — in-sample 또는 특정 분할에서 최고 성과를 낸 규칙이 섭동에 취약한 것은 반복되는 신호다.</li>
+</ul>
+
+<h2>방법론</h2>
+<ul>
+<li><b>하네스</b>: <code>scripts/walk_forward_entry_freshness.py</code>. 신호(패턴 유사도 top_k=30, pattern_length=60)는 윈도우당 1회 생성하고, veto는 진입 마스크만 제거하는 페어드(paired) 비교 — base와 veto 변형이 동일 신호 집합을 공유해 신호 생성 자체의 노이즈를 제거한다.</li>
+<li><b>데이터</b>: <code>tests/fixtures/real_btc_1h_2020plus.csv</code>(1h, 2020+, 약 56,000봉).</li>
+<li><b>지표</b>: 윈도우별 총거래수·승률·평균수익·누적수익(cum_return)·sharpe-like. 판정은 base 대비 델타의 3지표(cum/sharpe/win) 다수결 — 3/3 개선 방향 일치=ADOPT, 완전 반대=REJECT, 그 외 MIXED.</li>
+<li><b>1차 검증</b>: 8윈도우, lookback 168, X∈{10,20,30}%, {short,sym} 6변형.</li>
+<li><b>강건성 재검증</b>: (A) X∈{5,8,10,12,15}% × lookback∈{120,168,216} 그리드 15셀 · (B) 6윈도우 재분할 · (C) 12윈도우 재분할 · (D) 시작점 오프셋 +3,531봉(반 윈도우) 시프트. 전부 sym 계열, 8윈도우(A/D) 또는 재분할 수에 맞춘 윈도우.</li>
+</ul>
+
+<h2>한계</h2>
+<ul>
+<li><b>표본/기간</b>: 단일 심볼(BTC/USDT)·단일 데이터 구간(2020+)의 워크포워드 결과다. 다른 심볼·다른 시대에서의 일반화는 검증되지 않았다.</li>
+<li><b>동기 표본 극소</b>: 촉발 관찰인 라이브 9건(추격숏 4건)은 통계적으로 무의미할 만큼 작다 — 이 문서의 핵심 기여는 "작은 관찰을 정식 하네스로 검증했더니 기각됐다"는 과정 자체다.</li>
+<li><b>판정 규칙의 이산성</b>: ADOPT/MIXED/REJECT는 3지표 다수결이라는 임의 임계 규칙이며, 연속적인 효과 크기를 완전히 대체하지 못한다. A 그리드의 "체커보드"도 이 이산화의 산물일 수 있다(다만 경계 시프트(D)의 반전은 연속 지표(cum/sharpe 평균)로도 뚜렷하다).</li>
+<li><b>수치 출처</b>: 1차·강건성 A/B/C/D의 모든 판정과 델타(cum/sharpe/win)는 <code>reports/walk_forward_entry_freshness/{summary,robust_grid,robust_w6,robust_w12,robust_shift}.json</code>의 원자료를 이 문서 작성 시점에 직접 재계산해 대조했다(예: B run sym_10은 cum Δ mean +0.090이지만 median −0.032로 부호가 갈려 "median 음전환" 서술과 일치). 서술형 맥락(라이브 복기 9건 등)은 wiki <code>synthesis/entry-freshness-veto-rejected.md</code>·<code>.ai/planner/status.md</code>(2026-07-03) 기록에 근거한다.</li>
+</ul>
+
+<p class="foot">근거: <code>reports/walk_forward_entry_freshness/summary.json</code>(1차) · <code>robust_{grid,w6,w12,shift}.json</code>(강건성 4런) · wiki <code>synthesis/entry-freshness-veto-rejected.md</code> · <code>.ai/planner/status.md</code>(2026-07-03) · 시각 표기 JST · 완전 자기완결(외부 네트워크/폰트/CDN 0) · 이 보고서는 기각된 실험의 사후 기록이며 매매 신호가 아니다.</p>
+</div>
+</body>
+</html>

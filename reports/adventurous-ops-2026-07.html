@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>모험적 운용 검증 — 청산·레짐게이트 실험 종합</title>
+</head>
+<body>
+<style>
+:root {
+  --bull:#008300; --neut:#eda100; --bear:#e34948;
+  --bull-rgb:0,131,0; --bear-rgb:227,73,72;
+  --series-1:#2a78d6;
+  --surface:#fcfcfb; --surface-2:#f4f3f0; --card:#ffffff;
+  --text-primary:#0b0b0b; --text-secondary:#52514e; --text-muted:#86847e;
+  --border:#e3e1db; --grid:#ecece6;
+  --ok:#0ca30c; --bad:#d03b3b;
+}
+:root[data-theme="dark"], :root:not([data-theme="light"]) {}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bull:#22a722; --neut:#c98500; --bear:#e66767;
+    --bull-rgb:34,167,34; --bear-rgb:230,103,103;
+    --series-1:#3987e5;
+    --surface:#141413; --surface-2:#1f1f1d; --card:#1a1a19;
+    --text-primary:#f5f4ee; --text-secondary:#c3c2b7; --text-muted:#8f8d84;
+    --border:#33322e; --grid:#2a2a27;
+    --ok:#3cc23c; --bad:#e66767;
+  }
+}
+:root[data-theme="dark"] {
+    --bull:#22a722; --neut:#c98500; --bear:#e66767;
+    --bull-rgb:34,167,34; --bear-rgb:230,103,103;
+    --series-1:#3987e5;
+    --surface:#141413; --surface-2:#1f1f1d; --card:#1a1a19;
+    --text-primary:#f5f4ee; --text-secondary:#c3c2b7; --text-muted:#8f8d84;
+    --border:#33322e; --grid:#2a2a27;
+    --ok:#3cc23c; --bad:#e66767;
+}
+* { box-sizing:border-box; }
+body { margin:0; background:var(--surface); color:var(--text-primary);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Helvetica Neue","Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+  line-height:1.65; font-size:15px; -webkit-font-smoothing:antialiased; }
+.wrap { max-width:940px; margin:0 auto; padding:32px 22px 80px; }
+h1 { font-size:27px; font-weight:750; letter-spacing:-0.02em; margin:0 0 6px; }
+h2 { font-size:20px; font-weight:700; letter-spacing:-0.01em; margin:52px 0 6px; padding-top:18px; border-top:1px solid var(--border); }
+h3 { font-size:15px; font-weight:700; margin:26px 0 8px; color:var(--text-primary); }
+.sub { color:var(--text-muted); font-size:13px; margin:0 0 6px; }
+p { margin:10px 0; color:var(--text-secondary); }
+p.interp { color:var(--text-primary); }
+b, strong { color:var(--text-primary); font-weight:650; }
+.card { background:var(--card); border:1px solid var(--border); border-radius:14px; padding:20px 22px; margin:18px 0; }
+.tldr { border-left:4px solid var(--series-1); }
+.figwrap { background:var(--card); border:1px solid var(--border); border-radius:14px; padding:16px 14px 8px; margin:16px 0; overflow-x:auto; }
+.fcap { font-size:12.5px; color:var(--text-muted); margin:2px 4px 8px; }
+.grid-tiles { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px; margin:14px 0; }
+.tile { background:var(--surface-2); border:1px solid var(--border); border-radius:12px; padding:14px 16px; }
+.tile .k { font-size:12px; color:var(--text-muted); margin-bottom:3px; }
+.tile .v { font-size:23px; font-weight:750; letter-spacing:-0.02em; }
+.tile .v.sm { font-size:17px; }
+.tile .ci { font-size:11.5px; color:var(--text-muted); }
+.bull { color:var(--bull); } .bear { color:var(--bear); } .neut { color:var(--neut); }
+table { border-collapse:collapse; width:100%; font-size:13.5px; margin:12px 0; }
+th,td { text-align:left; padding:7px 10px; border-bottom:1px solid var(--border); }
+th { color:var(--text-muted); font-weight:600; font-size:12px; text-transform:uppercase; letter-spacing:0.03em; }
+td.mut { color:var(--text-muted); }
+td.ok { color:var(--ok); font-weight:700; } td.bad { color:var(--bad); font-weight:700; }
+tr.unrel td { color:var(--text-muted); }
+.warnbadge { display:inline-block; font-size:10.5px; background:rgba(208,59,59,.14); color:var(--bad); padding:1px 6px; border-radius:6px; margin-left:4px; }
+.curbadge { display:inline-block; font-size:10.5px; background:var(--series-1); color:#fff; padding:1px 7px; border-radius:6px; margin-left:5px; font-weight:700; }
+.chip { display:inline-block; border:1px solid var(--border); border-radius:20px; padding:4px 14px; margin:3px 6px 3px 0; font-size:12.5px; color:var(--text-secondary); background:var(--surface-2); }
+.pathflow-cap { font-size:12px; color:var(--text-muted); margin:8px 4px 0; }
+.legend { display:flex; gap:18px; flex-wrap:wrap; margin:4px 4px 10px; font-size:12.5px; color:var(--text-secondary); }
+.legend span { display:inline-flex; align-items:center; gap:6px; }
+.sw { width:11px; height:11px; border-radius:3px; display:inline-block; }
+.grid { stroke:var(--grid); stroke-width:1; }
+.tick { fill:var(--text-muted); font-size:11px; }
+.tickmut { fill:var(--text-muted); font-size:9.5px; }
+.axl { fill:var(--text-secondary); font-size:11.5px; }
+.dlabel { font-size:11.5px; font-weight:650; }
+.barval { fill:var(--text-primary); font-size:12px; font-weight:700; }
+.warnbox { background:rgba(237,161,0,.10); border:1px solid rgba(237,161,0,.35); border-radius:12px; padding:14px 18px; margin:16px 0; font-size:13.5px; }
+ul { color:var(--text-secondary); } li { margin:4px 0; }
+code { background:var(--surface-2); padding:1px 5px; border-radius:5px; font-size:12.5px; }
+.foot { color:var(--text-muted); font-size:12px; margin-top:40px; }
+.scgrid { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+@media (max-width:640px) { .scgrid { grid-template-columns:1fr; } h1{font-size:23px;} }
+@media print {
+  :root { color-scheme: light; }
+  html, body { background:#fff !important; }
+  .wrap { max-width:100%; padding:6mm 4mm; margin:0; }
+  @page { size:A4 portrait; margin:12mm 10mm; }
+  h1,h2,h3,h4 { break-after:avoid; page-break-after:avoid; }
+  h2 { margin-top:20px; }
+  .card, .figwrap, .warnbox, table, .grid-tiles, .scgrid, svg, .chip, .tile {
+    break-inside:avoid; page-break-inside:avoid;
+  }
+  .scgrid { grid-template-columns:1fr 1fr; }
+  .grid-tiles { grid-template-columns:repeat(3,1fr); }
+  tr { break-inside:avoid; page-break-inside:avoid; }
+  thead { display:table-header-group; }
+  a[href]:after { content:""; }
+  div[style*="overflow-x"] { overflow:visible !important; }
+  div[style*="overflow-x"] table { table-layout:fixed; width:100%; font-size:7.6pt; }
+  div[style*="overflow-x"] table th,
+  div[style*="overflow-x"] table td { word-break:break-word; overflow-wrap:anywhere; padding:4px 5px; }
+  div[style*="overflow-x"] table td[style*="font-size"] { font-size:7.2pt !important; }
+}
+.badge { display:inline-block; font-size:11.5px; font-weight:700; padding:2px 9px; border-radius:6px; }
+.badge-adopt { background:rgba(var(--bull-rgb),.14); color:var(--bull); }
+.badge-mixed { background:rgba(237,161,0,.16); color:var(--neut); }
+.badge-reject { background:rgba(var(--bear-rgb),.14); color:var(--bear); }
+</style>
+
+<div class="wrap">
+<h1>모험적 운용 검증 — 청산·레짐게이트 실험 종합</h1>
+<p class="sub">BTC/USDT · 라이브 봇과 동일한 leak-free 1h 데이터(<code>real_btc_1h_2020plus.csv</code> 56,511봉, 2020-01-01~) · exit-mode=close(라이브 패리티) · 비중첩 walk-forward 파티션(8윈도우 기본 + 오프셋 시프트 8윈도우 + 6윈도우) · 생성 2026-07-15 JST</p>
+
+<div class="card tldr">
+<h3 style="margin-top:0">TL;DR</h3>
+<p class="interp">질문: <b>「현행 운용이 너무 보수적인가?」</b> — 라이브에서 target +10% 도달이 0회(최대 MFE 6.5%)였고, neutral 레짐에서 롱이 100% 억제되는 모습을 보고 나온 실전 의문이다.</p>
+<p class="interp">답: <b>아니다.</b> 청산 target sweep(6변형)과 레짐 게이트 완화(5변형), 도합 11개 변형을 6년치 OOS 데이터로 walk-forward 검증한 결과 <b class="bear">전부 기각</b>됐다. 1차 하네스에서 「유망」해 보인 후보(t08, relaxed_gate)도 파티션을 시프트하거나 개수를 바꾸는 순간 무너졌다 — 6년 OOS는 현행 설정(stop −5% / target +10% / hold 42봉 + strict 게이트)이 <b>국소 최적</b>이라는 근거를 재확인했을 뿐이다.</p>
+<div style="margin-top:10px">
+<span class="chip">실험 1 — 청산 target sweep <b class="bear">6/6 기각</b></span>
+<span class="chip">실험 2 — 레짐 게이트 완화 <b class="bear">5/5 기각</b></span>
+<span class="chip">패턴 — 「1차 ADOPT = 분할 우연」 <b>3연속</b> (entry-freshness → 청산 → 게이트)</span>
+</div>
+</div>
+
+<h2>현재 상태 요약</h2>
+<div class="grid-tiles">
+<div class="tile"><div class="k">라이브 target 도달</div><div class="v bear">0회</div><div class="ci">최대 MFE 6.5% (target +10%)</div></div>
+<div class="tile"><div class="k">neutral 롱 억제</div><div class="v bear">100%</div><div class="ci">150봉 전수 억제</div></div>
+<div class="tile"><div class="k">라이브 기회비용</div><div class="v sm">+6.4%</div><div class="ci">단순합 · n=18 계산가능 에피소드</div></div>
+<div class="tile"><div class="k">검증 변형 수</div><div class="v">11</div><div class="ci">청산 6 + 게이트 5</div></div>
+<div class="tile"><div class="k">1차 ADOPT 궤적</div><div class="v bear sm">ADOPT→REJECT</div><div class="ci">t08·relaxed_gate 중간 MIXED 경유</div></div>
+<div class="tile"><div class="k">채택</div><div class="v bear">0/11</div><div class="ci">현행 설정 유지</div></div>
+</div>
+
+<h2>실험 1 — 청산 target sweep</h2>
+<p>라이브 복기에서 target +10% 도달이 0회였고 대부분 holding 42봉 만료로 청산됐다(최대 MFE 6.5%) — 「target이 너무 높은 것 아닌가」라는 가설을 walk-forward로 검증했다. 변형: target ±(6/7/8/12%, stop −5%·hold 42봉 고정) + trailing 2종(activate 5%, give-back 2%/3%). 판정 게이트는 <code>src/eval_harness.aggregate_paired</code> — cum_return·sharpe_like·win_rate 3개 지표 각각 「과반 윈도우 개선 AND 평균Δ양수」를 통과해야 하며, 3개 전부 통과=ADOPT, 1개 이상 통과=MIXED, 전부 미통과=REJECT.</p>
+
+<h3>1차 하네스 (main_w8, close 모드) — 변형별 판정</h3>
+<div style="overflow-x:auto">
+<table>
+<tr><th>변형</th><th>내용</th><th>close 모드</th><th>intrabar 모드</th></tr>
+<tr><td>t06</td><td>target +6%</td><td><span class="badge badge-mixed">MIXED</span></td><td><span class="badge badge-reject">REJECT</span></td></tr>
+<tr><td>t07</td><td>target +7%</td><td><span class="badge badge-mixed">MIXED</span></td><td><span class="badge badge-mixed">MIXED</span></td></tr>
+<tr><td>t08</td><td>target +8%</td><td><span class="badge badge-adopt">ADOPT</span></td><td><span class="badge badge-reject">REJECT</span></td></tr>
+<tr><td>t12</td><td>target +12%</td><td><span class="badge badge-reject">REJECT</span></td><td><span class="badge badge-reject">REJECT</span></td></tr>
+<tr><td>trail_a05_d02</td><td>trailing activate 5%, give-back 2%</td><td><span class="badge badge-mixed">MIXED</span></td><td><span class="badge badge-mixed">MIXED</span></td></tr>
+<tr><td>trail_a05_d03</td><td>trailing activate 5%, give-back 3%</td><td><span class="badge badge-reject">REJECT</span></td><td><span class="badge badge-mixed">MIXED</span></td></tr>
+</table>
+</div>
+<p class="interp">close 모드(라이브 패리티) 기준 유일한 1차 ADOPT는 <b>t08(target +8%)</b>이다. 나머지는 처음부터 MIXED/REJECT — t12는 그리드/시프트/파티션 전 실행에서 일관 REJECT였다.</p>
+
+<h3>t08 — 「1차 ADOPT」의 붕괴: 3개 파티션 재검증</h3>
+<div class="figwrap">
+<div class="fcap">target +8%(t08)의 base 대비 cum_return 평균 Δ — 파티션(윈도우 구성)을 바꿀 때마다 부호가 뒤집힌다. 값 위에 마우스를 올리면 상세.</div>
+<svg viewBox="0 0 460 250" width="100%" preserveAspectRatio="xMidYMid meet" role="img" style="max-width:460px"><line x1="46" y1="194.0" x2="440" y2="194.0" class="grid"/><text x="38" y="198.0" class="tick" text-anchor="end">-0.147</text><line x1="46" y1="151.5" x2="440" y2="151.5" class="grid"/><text x="38" y="155.5" class="tick" text-anchor="end">-0.077</text><line x1="46" y1="109.0" x2="440" y2="109.0" class="grid"/><text x="38" y="113.0" class="tick" text-anchor="end">-0.006</text><line x1="46" y1="66.5" x2="440" y2="66.5" class="grid"/><text x="38" y="70.5" class="tick" text-anchor="end">+0.064</text><line x1="46" y1="24.0" x2="440" y2="24.0" class="grid"/><text x="38" y="28.0" class="tick" text-anchor="end">+0.135</text><line x1="46" y1="105.3" x2="440" y2="105.3" stroke="var(--text-muted)" stroke-width="1"/><rect x="96.5" y="34.6" width="64" height="70.7" rx="5" fill="var(--bull)"><title>main_w8: cumΔ평균 +0.117 (5/8 승) → ADOPT</title></rect><text x="128.5" y="26.6" class="barval" text-anchor="middle">+0.117</text><text x="128.5" y="212" class="tick" text-anchor="middle">main_w8</text><rect x="211.0" y="105.3" width="64" height="77.1" rx="5" fill="var(--neut)"><title>offset3530_w8: cumΔ평균 −0.128 (반전) → MIXED</title></rect><text x="243.0" y="198.4" class="barval" text-anchor="middle">-0.128</text><text x="243.0" y="212" class="tick" text-anchor="middle">offset3530_w8</text><rect x="325.5" y="105.3" width="64" height="63.1" rx="5" fill="var(--bear)"><title>w6: cumΔ평균 −0.105 (3/6 승) → REJECT</title></rect><text x="357.5" y="184.4" class="barval" text-anchor="middle">-0.105</text><text x="357.5" y="212" class="tick" text-anchor="middle">w6</text><text x="230.0" y="242" class="axl" text-anchor="middle">target +8%(t08) — 기준 대비 cum_return 평균 Δ (파티션별)</text></svg>
+</div>
+<div style="overflow-x:auto">
+<table>
+<tr><th>재검증</th><th>구성</th><th>cum_return Δ평균</th><th>개선 윈도우</th><th>sharpe_like Δ평균</th><th>판정</th></tr>
+<tr><td>main_w8 (1차)</td><td>8윈도우, offset 0</td><td>+0.117</td><td>5/8</td><td>+0.093</td><td><span class="badge badge-adopt">ADOPT</span></td></tr>
+<tr><td>offset3530_w8</td><td>8윈도우, +3,530봉 시프트(반윈도우)</td><td>−0.128</td><td>5/8</td><td>+0.009</td><td><span class="badge badge-mixed">MIXED</span></td></tr>
+<tr><td>w6</td><td>6윈도우(분할 개수 변경)</td><td>−0.105</td><td>3/6</td><td>−0.070</td><td><span class="badge badge-reject">REJECT</span></td></tr>
+</table>
+</div>
+<p class="interp">1차 ADOPT(main_w8)의 cum_return 개선은 <b>8개 윈도우 중 단 1개(2021 불장 구간, Δ+0.862)에 92% 집중</b>돼 있다 — 그 윈도우를 빼면 나머지 7개 평균 Δ는 +0.011로 사실상 무효과다. 윈도우 경계를 반 칸 시프트하자 그 즉시 평균 Δ가 음수로 반전(MIXED)했고, 파티션 개수를 6개로 바꾸자 REJECT로 확정됐다.</p>
+<div class="figwrap">
+<div class="fcap">t08 main_w8 — 윈도우별 cum_return Δ(t08−base), close 모드. 2번째 윈도우(2021 강세장)가 전체 개선의 대부분을 차지한다.</div>
+<svg viewBox="0 0 560 250" width="100%" preserveAspectRatio="xMidYMid meet" role="img" style="max-width:560px"><line x1="46" y1="194.0" x2="540" y2="194.0" class="grid"/><text x="38" y="198.0" class="tick" text-anchor="end">-0.20</text><line x1="46" y1="151.5" x2="540" y2="151.5" class="grid"/><text x="38" y="155.5" class="tick" text-anchor="end">+0.10</text><line x1="46" y1="109.0" x2="540" y2="109.0" class="grid"/><text x="38" y="113.0" class="tick" text-anchor="end">+0.40</text><line x1="46" y1="66.5" x2="540" y2="66.5" class="grid"/><text x="38" y="70.5" class="tick" text-anchor="end">+0.69</text><line x1="46" y1="24.0" x2="540" y2="24.0" class="grid"/><text x="38" y="28.0" class="tick" text-anchor="end">+0.99</text><line x1="46" y1="165.5" x2="540" y2="165.5" stroke="var(--text-muted)" stroke-width="1"/><rect x="61.8" y="165.5" width="44" height="24.8" rx="5" fill="var(--series-1)"><title>윈도우1 cumΔ: -0.174</title></rect><text x="83.8" y="206.3" class="barval" text-anchor="middle">-0.17</text><text x="83.8" y="212" class="tick" text-anchor="middle">W1</text><rect x="121.6" y="42.5" width="44" height="123.0" rx="5" fill="var(--neut)"><title>윈도우2 cumΔ: +0.862  ← 2021 불장, 개선분의 92% 집중</title></rect><text x="143.6" y="34.5" class="barval" text-anchor="middle">+0.86</text><text x="143.6" y="212" class="tick" text-anchor="middle">W2</text><rect x="181.3" y="162.6" width="44" height="2.9" rx="5" fill="var(--series-1)"><title>윈도우3 cumΔ: +0.020</title></rect><text x="203.3" y="154.6" class="barval" text-anchor="middle">+0.02</text><text x="203.3" y="212" class="tick" text-anchor="middle">W3</text><rect x="241.1" y="165.5" width="44" height="6.2" rx="5" fill="var(--series-1)"><title>윈도우4 cumΔ: -0.044</title></rect><text x="263.1" y="187.7" class="barval" text-anchor="middle">-0.04</text><text x="263.1" y="212" class="tick" text-anchor="middle">W4</text><rect x="300.9" y="158.4" width="44" height="7.0" rx="5" fill="var(--series-1)"><title>윈도우5 cumΔ: +0.049</title></rect><text x="322.9" y="150.4" class="barval" text-anchor="middle">+0.05</text><text x="322.9" y="212" class="tick" text-anchor="middle">W5</text><rect x="360.7" y="139.6" width="44" height="25.9" rx="5" fill="var(--series-1)"><title>윈도우6 cumΔ: +0.181</title></rect><text x="382.7" y="131.6" class="barval" text-anchor="middle">+0.18</text><text x="382.7" y="212" class="tick" text-anchor="middle">W6</text><rect x="420.4" y="165.5" width="44" height="2.8" rx="5" fill="var(--series-1)"><title>윈도우7 cumΔ: -0.019</title></rect><text x="442.4" y="184.2" class="barval" text-anchor="middle">-0.02</text><text x="442.4" y="212" class="tick" text-anchor="middle">W7</text><rect x="480.2" y="156.8" width="44" height="8.6" rx="5" fill="var(--series-1)"><title>윈도우8 cumΔ: +0.061</title></rect><text x="502.2" y="148.8" class="barval" text-anchor="middle">+0.06</text><text x="502.2" y="212" class="tick" text-anchor="middle">W8</text><text x="280.0" y="242" class="axl" text-anchor="middle">윈도우별 cum_return Δ(t08−base) · close 모드 · main_w8</text></svg>
+</div>
+
+<h3>부산물 발견 — 청산 시맨틱 갭 (close vs intrabar)</h3>
+<p>이번 실험에서 라이브 봇(<code>src/position_manager.py</code>)이 stop/target을 <b>봉 마감가(close)</b>로 판정하는 반면, 레거시 <code>src/backtest.py</code>는 <b>인트라바 고저 터치</b>로 판정한다는 시맨틱 갭이 처음 확인됐다. base 변형(target +10%, 현행 설정)을 두 모드로 나란히 돌려보면:</p>
+<div class="figwrap">
+<div class="fcap">close 모드 − intrabar 모드 cum_return 차이 (base 변형, 8윈도우). close가 5/8 윈도우에서 우위, 평균 +0.24.</div>
+<svg viewBox="0 0 560 250" width="100%" preserveAspectRatio="xMidYMid meet" role="img" style="max-width:560px"><line x1="46" y1="194.0" x2="540" y2="194.0" class="grid"/><text x="38" y="198.0" class="tick" text-anchor="end">-0.07</text><line x1="46" y1="151.5" x2="540" y2="151.5" class="grid"/><text x="38" y="155.5" class="tick" text-anchor="end">+0.21</text><line x1="46" y1="109.0" x2="540" y2="109.0" class="grid"/><text x="38" y="113.0" class="tick" text-anchor="end">+0.50</text><line x1="46" y1="66.5" x2="540" y2="66.5" class="grid"/><text x="38" y="70.5" class="tick" text-anchor="end">+0.79</text><line x1="46" y1="24.0" x2="540" y2="24.0" class="grid"/><text x="38" y="28.0" class="tick" text-anchor="end">+1.08</text><line x1="46" y1="183.2" x2="540" y2="183.2" stroke="var(--text-muted)" stroke-width="1"/><rect x="61.8" y="44.8" width="44" height="138.4" rx="5" fill="var(--bull)"><title>윈도우1 close−intrabar cumΔ: +0.938</title></rect><text x="83.8" y="36.8" class="barval" text-anchor="middle">+0.94</text><text x="83.8" y="212" class="tick" text-anchor="middle">W1</text><rect x="121.6" y="67.6" width="44" height="115.5" rx="5" fill="var(--bull)"><title>윈도우2 close−intrabar cumΔ: +0.783</title></rect><text x="143.6" y="59.6" class="barval" text-anchor="middle">+0.78</text><text x="143.6" y="212" class="tick" text-anchor="middle">W2</text><rect x="181.3" y="183.2" width="44" height="7.7" rx="5" fill="var(--bear)"><title>윈도우3 close−intrabar cumΔ: -0.052</title></rect><text x="203.3" y="206.8" class="barval" text-anchor="middle">-0.05</text><text x="203.3" y="212" class="tick" text-anchor="middle">W3</text><rect x="241.1" y="178.4" width="44" height="4.8" rx="5" fill="var(--bull)"><title>윈도우4 close−intrabar cumΔ: +0.033</title></rect><text x="263.1" y="170.4" class="barval" text-anchor="middle">+0.03</text><text x="263.1" y="212" class="tick" text-anchor="middle">W4</text><rect x="300.9" y="163.2" width="44" height="20.0" rx="5" fill="var(--bull)"><title>윈도우5 close−intrabar cumΔ: +0.135</title></rect><text x="322.9" y="155.2" class="barval" text-anchor="middle">+0.14</text><text x="322.9" y="212" class="tick" text-anchor="middle">W5</text><rect x="360.7" y="163.5" width="44" height="19.6" rx="5" fill="var(--bull)"><title>윈도우6 close−intrabar cumΔ: +0.133</title></rect><text x="382.7" y="155.5" class="barval" text-anchor="middle">+0.13</text><text x="382.7" y="212" class="tick" text-anchor="middle">W6</text><rect x="420.4" y="183.2" width="44" height="9.4" rx="5" fill="var(--bear)"><title>윈도우7 close−intrabar cumΔ: -0.064</title></rect><text x="442.4" y="208.6" class="barval" text-anchor="middle">-0.06</text><text x="442.4" y="212" class="tick" text-anchor="middle">W7</text><rect x="480.2" y="183.2" width="44" height="1.5" rx="5" fill="var(--bear)"><title>윈도우8 close−intrabar cumΔ: -0.003</title></rect><text x="502.2" y="199.5" class="barval" text-anchor="middle">-0.00</text><text x="502.2" y="212" class="tick" text-anchor="middle">W8</text><text x="280.0" y="242" class="axl" text-anchor="middle">close 모드 − intrabar 모드 cum_return 차이 (base 변형, 8윈도우) · close 5승 평균 +0.24</text></svg>
+</div>
+<p class="interp">close 시맨틱이 오히려 8윈도우 중 5승, 평균 cum_return +0.24 우위였다(위크 손절 회피 효과로 추정). 즉 라이브 봇의 봉마감 판정 방식은 결함이 아니라 인트라바 판정보다 유리한 쪽이었다. → <b>이후 모든 청산룰 실험은 반드시 close 모드로 검증해야 라이브 동작과 일치</b>한다는 방법론 교훈이 남았고, 본 리포트의 게이트 실험(실험 2)에도 이미 반영됐다.</p>
+
+<h3>trailing 변형</h3>
+<p>trailing(activate 5%, give-back 2%/3%)은 MDD만 소폭 개선(base 평균 −0.331 → −0.294/−0.283)됐을 뿐 cum_return·sharpe는 훼손돼 MIXED/REJECT로 마감됐다. MDD 방어와 수익 훼손을 맞바꾸는 트레이드오프가 순개선으로 이어지지 않았다.</p>
+
+<div class="warnbox">⚠ <b>실험 1 결론 — 기각. 봇 무변경.</b> 현행 −5%/+10%/42봉 유지. 「target 0회 도달」은 룰 결함이 아니라 timeout 만료 청산이 정상적인 수익 경로임을 재확인했다.</div>
+
+<h2>실험 2 — 레짐 게이트 완화 5변형</h2>
+<p>라이브에서 raw 롱 시그널이 게이트에 반복 억제되는 모습(neutral 레짐 150봉 중 롱 100% 억제, 숏은 102봉 중 24봉만 억제)을 보고 「과억제 아닌가」라는 가설을 세웠다. 완전 계산 가능한 억제 18에피소드에서 놓친 이익 +15.5%(10건) vs 회피한 손실 −9.1%(8건) = 단순합 기회비용 +6.4%(전부 hold42 시간청산). 실진입 7건은 전부 bearish 숏이었고, 섀도 관측 중인 ensemble 레짐 라벨러는 125봉 동안 현행 게이트와 불일치 0건이었다(표본 극소, 6/12~7/6 OHLC 부재로 19에피소드는 계산불가).</p>
+<p>baseline은 라이브 <code>src/regime_gate.gate_signal</code>(strict — 롱은 bullish만, 숏은 bearish만 허용, neutral 전면 차단). 5개 변형: <b>no_gate</b>(게이트 제거) · <b>short_only</b>(롱 전면 개방) · <b>neutral_open</b>(neutral만 개방) · <b>ensemble_gate</b>(Phase 5-5 ensemble 라벨러) · <b>relaxed_gate</b>(Phase 5-5 relaxed 라벨러, 정책은 strict 유지). exit-mode는 실험 1의 교훈에 따라 close(라이브 패리티) 고정.</p>
+
+<h3>walk-forward 판정표 — 5변형 × 3파티션</h3>
+<div style="overflow-x:auto">
+<table>
+<tr><th>변형</th><th>main_w8</th><th>offset3530_w8</th><th>w6</th></tr>
+<tr><td>no_gate</td><td><span class="badge badge-mixed">MIXED</span></td><td><span class="badge badge-reject">REJECT</span></td><td><span class="badge badge-mixed">MIXED</span></td></tr>
+<tr><td>short_only</td><td><span class="badge badge-mixed">MIXED</span></td><td><span class="badge badge-reject">REJECT</span></td><td><span class="badge badge-reject">REJECT</span></td></tr>
+<tr><td>neutral_open</td><td><span class="badge badge-mixed">MIXED</span></td><td><span class="badge badge-reject">REJECT</span></td><td><span class="badge badge-mixed">MIXED</span></td></tr>
+<tr><td>ensemble_gate</td><td><span class="badge badge-reject">REJECT</span></td><td><span class="badge badge-reject">REJECT</span></td><td><span class="badge badge-mixed">MIXED</span></td></tr>
+<tr><td>relaxed_gate</td><td><span class="badge badge-adopt">ADOPT</span></td><td><span class="badge badge-mixed">MIXED</span></td><td><span class="badge badge-mixed">MIXED</span></td></tr>
+</table>
+</div>
+<p class="interp">5변형 중 1차 ADOPT는 <b>relaxed_gate</b> 하나뿐이다. 나머지 4개는 처음부터 MIXED 이하 — 게이트를 아예 없애거나(no_gate) 특정 방향만 개방(short_only/neutral_open)하는 단순한 완화는 3파티션 전부에서 채택선을 넘지 못했다.</p>
+
+<h3>relaxed_gate — 유일 1차 ADOPT의 상세</h3>
+<div class="figwrap">
+<div class="fcap">relaxed_gate — base 대비 cum_return Δ(파랑) vs MDD Δ(빨강, 음수=악화). cum_return은 3파티션 모두 개선되지만 MDD는 3파티션 모두 악화된다.</div>
+<svg viewBox="0 0 520 280" width="100%" preserveAspectRatio="xMidYMid meet" role="img" style="max-width:520px"><line x1="46" y1="210.0" x2="500" y2="210.0" class="grid"/><text x="38" y="214.0" class="tick" text-anchor="end">-0.065</text><line x1="46" y1="163.5" x2="500" y2="163.5" class="grid"/><text x="38" y="167.5" class="tick" text-anchor="end">+0.012</text><line x1="46" y1="117.0" x2="500" y2="117.0" class="grid"/><text x="38" y="121.0" class="tick" text-anchor="end">+0.089</text><line x1="46" y1="70.5" x2="500" y2="70.5" class="grid"/><text x="38" y="74.5" class="tick" text-anchor="end">+0.166</text><line x1="46" y1="24.0" x2="500" y2="24.0" class="grid"/><text x="38" y="28.0" class="tick" text-anchor="end">+0.243</text><line x1="46" y1="170.6" x2="500" y2="170.6" stroke="var(--text-muted)" stroke-width="1"/><rect x="73.8" y="48.4" width="34.0" height="122.1" rx="4" fill="var(--series-1)"><title>main_w8 · cum_return Δ: +0.202</title></rect><text x="90.8" y="42.4" class="barval" text-anchor="middle" font-size="10.5">+0.202</text><rect x="135.6" y="170.6" width="34.0" height="18.9" rx="4" fill="var(--bear)"><title>main_w8 · MDD Δ: -0.031</title></rect><text x="152.6" y="203.5" class="barval" text-anchor="middle" font-size="10.5">-0.031</text><text x="121.7" y="230" class="tick" text-anchor="middle">main_w8</text><rect x="225.1" y="98.9" width="34.0" height="71.6" rx="4" fill="var(--series-1)"><title>offset3530_w8 · cum_return Δ: +0.119</title></rect><text x="242.1" y="92.9" class="barval" text-anchor="middle" font-size="10.5">+0.119</text><rect x="286.9" y="170.6" width="34.0" height="6.0" rx="4" fill="var(--bear)"><title>offset3530_w8 · MDD Δ: -0.010</title></rect><text x="303.9" y="190.5" class="barval" text-anchor="middle" font-size="10.5">-0.010</text><text x="273.0" y="230" class="tick" text-anchor="middle">offset3530_w8</text><rect x="376.4" y="99.1" width="34.0" height="71.5" rx="4" fill="var(--series-1)"><title>w6 · cum_return Δ: +0.118</title></rect><text x="393.4" y="93.1" class="barval" text-anchor="middle" font-size="10.5">+0.118</text><rect x="438.2" y="170.6" width="34.0" height="32.9" rx="4" fill="var(--bear)"><title>w6 · MDD Δ: -0.054</title></rect><text x="455.2" y="217.4" class="barval" text-anchor="middle" font-size="10.5">-0.054</text><text x="424.3" y="230" class="tick" text-anchor="middle">w6</text><text x="260.0" y="270" class="axl" text-anchor="middle">relaxed_gate — 기준 대비 cum_return Δ(파랑) vs MDD Δ(빨강, 음수=악화) · 3개 파티션</text></svg>
+</div>
+<div style="overflow-x:auto">
+<table>
+<tr><th>재검증</th><th>cum_return Δ</th><th>개선 윈도우</th><th>sharpe_like Δ</th><th>MDD Δ</th><th>MDD 개선 윈도우</th><th>트레이드 수</th></tr>
+<tr><td>main_w8</td><td class="ok">+0.202</td><td>6/8</td><td class="ok">+0.099</td><td class="bad">−3.1pp</td><td>2/8</td><td>770→917 (+19%)</td></tr>
+<tr><td>offset3530_w8</td><td>+0.119</td><td>4/8</td><td class="bad">−0.037</td><td class="bad">−1.0pp</td><td>3/8</td><td>—</td></tr>
+<tr><td>w6</td><td>+0.118</td><td>4/6</td><td class="bad">−0.135</td><td class="bad">−5.4pp</td><td>2/6</td><td>—</td></tr>
+</table>
+</div>
+<p class="interp">relaxed_gate는 3개 파티션 전부에서 cum_return이 개선되지만(+0.202/+0.119/+0.118), 오프셋 시프트와 w6 분할에서 sharpe_like가 음전환(−0.037, −0.135)해 과반 지표 통과에 실패했다. 더 결정적인 것은 <b>MDD가 3개 파티션 전부 악화</b>됐다는 점이다(평균 −3.1pp/−1.0pp/−5.4pp, MDD 개선 윈도우는 8개 중 2~3개뿐). 게이트를 도입한 원래 목적이 「하락 DD 방어」였는데, 그 지표 자체가 완화 이후 일관되게 나빠졌다면 cum_return·sharpe 개선만으로는 채택할 수 없다.</p>
+
+<div class="warnbox">⚠ <b>실험 2 결론 — 기각. 봇 무변경, 현행 strict 게이트 유지.</b> 라이브 기회비용 +6.4%는 최근 9일 neutral 장에 편중된 n=18 소표본이며, 6년 OOS가 이를 기각했다. 섀도 ensemble 관측(125봉, 불일치 0건)도 계속 유지하되 정책 전환 근거로 삼지 않는다.</div>
+
+<h2>패턴 — 「1차 ADOPT = 분할 우연」 3연속</h2>
+<p>이번 두 실험은 독립적이지만 동일한 실패 패턴을 반복했다: <b>단일 파티션 구성에서 ADOPT로 보인 후보가, 윈도우 경계를 시프트하거나 개수를 바꾸는 순간 무너진다.</b> 이 패턴은 이번이 처음이 아니다 — 2026-07-03 진입 신선도(entry-freshness) veto 검증에서 이미 한 차례 관측됐고, 이번 두 실험(청산 target·레짐 게이트)에서 3연속으로 재현됐다.</p>
+
+<div style="overflow-x:auto">
+<table>
+<tr><th>실험 (날짜)</th><th>1차 판정</th><th>오프셋 시프트</th><th>분할수 변경</th><th>최종 결론</th></tr>
+<tr><td>entry-freshness veto — sym_10 (2026-07-03)</td><td><span class="badge badge-adopt">ADOPT</span></td><td><span class="badge badge-reject">REJECT</span> (Δ−0.121)</td><td><span class="badge badge-mixed">MIXED/ADOPT</span> 체커보드(6윈 MIXED · 12윈 ADOPT)</td><td><span class="badge badge-reject">REJECT</span></td></tr>
+<tr><td>청산 target — t08 (2026-07-15)</td><td><span class="badge badge-adopt">ADOPT</span></td><td><span class="badge badge-mixed">MIXED</span> (Δ−0.128)</td><td><span class="badge badge-reject">REJECT</span> (w6)</td><td><span class="badge badge-reject">REJECT</span></td></tr>
+<tr><td>레짐 게이트 — relaxed_gate (2026-07-15)</td><td><span class="badge badge-adopt">ADOPT</span></td><td><span class="badge badge-mixed">MIXED</span> (sharpe 음전환)</td><td><span class="badge badge-mixed">MIXED</span> (w6, MDD 악화)</td><td><span class="badge badge-reject">REJECT</span></td></tr>
+</table>
+</div>
+<p class="interp">세 실험 모두 왼쪽 열(1차 판정)은 초록(ADOPT)이지만, 파티션을 한 번만 흔들어도 오른쪽으로 갈수록 색이 바랜다. 이는 <b>단일 분할 ADOPT가 통계적으로 유효한 신호가 아니라 그 분할에서만 우연히 맞아떨어진 결과</b>임을 시사한다 — in-sample 최적화의 전형적 징후다. 세 실험을 거치며 게이트 룰이 누적적으로 강화됐다: (1) 분할 섭동(개수·시프트) 검증 필수 → (2) exit-mode(close vs intrabar) 시맨틱 일치 필수 → (3) 게이트가 방어하려는 지표(MDD) 자체가 개선되지 않으면 cum/sharpe 개선만으로는 채택 불가. 「분할을 흔들어 보는 것」이 저비용으로 과최적화를 걸러내는 가장 효과적인 단일 절차였다.</p>
+
+<h2>결론</h2>
+<div class="grid-tiles">
+<div class="tile"><div class="k">청산 룰</div><div class="v sm">stop −5% / target +10%</div><div class="ci">hold 42봉 · 변경 없음</div></div>
+<div class="tile"><div class="k">레짐 게이트</div><div class="v sm">strict 유지</div><div class="ci">롱=bullish만, 숏=bearish만</div></div>
+<div class="tile"><div class="k">채택된 변형</div><div class="v bear">0/11</div><div class="ci">청산 6 + 게이트 5</div></div>
+</div>
+<p class="interp">현행 운용은 「보수적이어서 손해」가 아니라 6년 OOS 기준 <b>국소 최적</b>이다. 11개 공격화 변형 전부가 walk-forward에서 걸러졌고, 유일하게 1차 통과했던 두 후보(t08, relaxed_gate)는 파티션 섭동에 붕괴했다. 남아있는 공격화 경로는 현행 데이터·룰 공간 내부의 파라미터 튜닝이 아니라, <b>직교 데이터(온체인·매크로 등)를 쓰는 위성 전략</b>이다 — 현재 보류 중이며 별도 검증 트랙으로 다룬다.</p>
+
+<h2>방법론</h2>
+<ul>
+<li><b>데이터</b>: <code>tests/fixtures/real_btc_1h_2020plus.csv</code> 56,511봉(2020-01-01~), 1h 타임프레임, 패턴길이 60 · top_k 30.</li>
+<li><b>파티션</b>: 비중첩 8윈도우(main_w8, offset_bars=0) · 8윈도우를 3,530봉(반윈도우) 시프트(offset3530_w8) · 6윈도우 분할(w6, 분할 개수 변경). 세 구성 모두 같은 원본 데이터를 재분할한 것으로, 완전히 독립적인 표본은 아니다(한계 참조).</li>
+<li><b>exit-mode</b>: close(봉 마감가 판정) — 라이브 <code>position_manager.py</code>와 동일 시맨틱. 실험 1에서 close/intrabar 갭을 확인한 뒤 실험 2부터 close로 고정.</li>
+<li><b>판정 규칙</b> (<code>src/eval_harness.aggregate_paired</code>): 지표(cum_return · sharpe_like · win_rate)별로 「과반 윈도우 개선 AND 평균 Δ 양수」를 충족해야 그 지표 통과. 3개 지표 전부 통과 = <b class="bull">ADOPT</b>, 1개 이상 통과 = <b class="neut">MIXED</b>, 전부 미통과 = <b class="bear">REJECT</b>.</li>
+<li><b>채택 기준</b>: 3개 파티션(main_w8·offset3530_w8·w6) 전부 ADOPT일 때만 봇 반영 후보로 승격. 이번 11개 변형 중 이 기준을 넘긴 것은 없다.</li>
+<li><b>산출물</b>: <code>reports/walk_forward_exit_target/{main_w8,offset3530_w8,w6}.json</code>, <code>reports/walk_forward_regime_gate/{main_w8,offset3530_w8,w6}.json</code> (로컬 산출물, 봇 미반영).</li>
+</ul>
+
+<h2>한계</h2>
+<ul>
+<li><b>파티션 독립성</b>: 3개 구성 모두 동일 원본 시계열의 재분할이라 완전히 독립적인 검증은 아니다 — 특히 2021년 강세장처럼 극단적으로 큰 단일 윈도우가 여러 구성에 걸쳐 결과를 좌우할 수 있다(t08 사례에서 실증).</li>
+<li><b>라이브 실기록 표본</b>: 레짐 게이트 완화의 동기가 된 라이브 기회비용(+6.4%)은 게이트 가동 후 9일·18에피소드에 불과하며 neutral 장 편중 구간이다. 6년 OOS와 표본 규모 차이가 크다.</li>
+<li><b>MDD 게이트 관점</b>: 게이트 완화가 MDD를 악화시킨다는 결론은 「게이트 목적=하락 DD 방어」라는 전제에 기반한다. 이 전제 자체가 향후 재평가 대상이 될 수 있다.</li>
+<li><b>trailing 변형 탐색 범위</b>: activate 5% 고정, give-back 2/3%만 테스트 — 더 넓은 grid는 미탐색.</li>
+<li><b>확률이지 예언이 아니다</b>: 본 리포트는 「같은 데이터·같은 분할에서 이런 결과가 나왔다」는 사후 검증이며, 향후 시장 국면에 대한 예측이 아니다.</li>
+</ul>
+
+<p class="foot">근거 수치: <code>reports/walk_forward_exit_target/{main_w8,offset3530_w8,w6}.json</code> · <code>reports/walk_forward_regime_gate/{main_w8,offset3530_w8,w6}.json</code> · 관련 wiki: <code>synthesis/exit-target-sweep-rejected.md</code> · <code>synthesis/regime-gate-relaxation-rejected.md</code> · <code>synthesis/entry-freshness-veto-rejected.md</code> · 시각 표기 JST · 완전 자기완결(외부 네트워크/폰트/CDN 0) · 투자 조언 아님.</p>
+</div>
+</body>
+</html>
