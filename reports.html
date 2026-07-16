@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>분석 리포트 · 밥값 트레이더</title>
+<style>
+  :root{
+    --paper:#FAFAF8;          /* 종이빛 배경 (순백 아님) */
+    --card:#FFFFFF;
+    --ink:#1c1c1a;            /* 본문 */
+    --ink-2:#55534d;          /* 보조 */
+    --ink-3:#8f8d86;          /* 흐림 */
+    --line:#E8E7E1;           /* 헤어라인 */
+    --line-2:#F0EFEA;
+    --up:#12855f;             /* 수익 / 상승(bull) */
+    --down:#c8324b;           /* 손실 / 하락(bear) */
+    --warn:#c47a00;           /* 주의 */
+    --info:#2f6db3;           /* 정보 */
+    --neutral:#b6b4ac;
+    --up-wash:#12855f1a;
+    --down-wash:#c8324b1a;
+    --mono:ui-monospace,"SF Mono",SFMono-Regular,"JetBrains Mono",Menlo,monospace;
+    --sans:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Pretendard","Segoe UI",Roboto,sans-serif;
+  }
+  /* 리포트(iframe)가 OS 다크 설정을 자동 추종(report.html 자체 prefers-color-scheme)하므로,
+     사이드바/햄버거 크롬도 동일하게 따라가야 이음매에서 라이트↔다크가 어긋나지 않는다.
+     index.html은 다크 모드 자체가 없어(순수 라이트 고정) 여기선 적용 대상이 없다. */
+  @media (prefers-color-scheme: dark){
+    :root{
+      --paper:#141413;
+      --card:#1a1a19;
+      --ink:#f5f4ee;
+      --ink-2:#c3c2b7;
+      --ink-3:#8f8d84;
+      --line:#33322e;
+      --line-2:#2a2a27;
+      --up:#22a722;
+      --down:#e66767;
+      --warn:#c98500;
+      --info:#3987e5;
+      --neutral:#6f6d66;
+      --up-wash:#22a7221a;
+      --down-wash:#e667671a;
+    }
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;height:100%}
+  body{
+    font-family:var(--sans);color:var(--ink);background:var(--paper);
+    -webkit-font-smoothing:antialiased;
+  }
+
+  /* ---------- 리포트 뷰어 레이아웃 ---------- */
+  .rwrap{display:flex;height:100vh;overflow:hidden}
+
+  .rsidebar{
+    width:300px;flex:0 0 auto;height:100vh;overflow-y:auto;
+    background:var(--card);border-right:1px solid var(--line);
+    padding:20px 0 20px;
+  }
+  .rsb-head{padding:0 20px 14px 44px;border-bottom:1px solid var(--line-2);margin-bottom:6px}
+  .rsb-head h1{font-size:14px;font-weight:700;margin:0 0 2px;letter-spacing:-.2px}
+  .rsb-head .sub{font-size:11px;color:var(--ink-3)}
+
+  .rlist{display:flex;flex-direction:column}
+  .ritem{
+    display:block;width:100%;text-align:left;border:none;background:none;cursor:pointer;
+    padding:12px 20px;border-bottom:1px solid var(--line-2);font-family:inherit;color:inherit;
+  }
+  .ritem:hover{background:var(--line-2)}
+  .ritem.active{background:var(--up-wash);box-shadow:inset 3px 0 0 var(--info)}
+  .ritem .rt-title{font-size:12.5px;font-weight:650;color:var(--ink);line-height:1.35;margin-bottom:3px}
+  .ritem .rt-date{font-size:10px;color:var(--ink-3);font-family:var(--mono);margin-bottom:4px}
+  .ritem .rt-sum{font-size:11px;color:var(--ink-2);line-height:1.42}
+  .rempty{padding:16px 20px;font-size:12px;color:var(--ink-3)}
+
+  .rmain{flex:1 1 0;height:100vh;min-width:0;position:relative;background:var(--paper)}
+  .rmain iframe{width:100%;height:100%;border:none;display:block;background:var(--paper)}
+  .rempty-main{display:flex;align-items:center;justify-content:center;height:100%;
+    color:var(--ink-3);font-size:12px}
+
+  /* ---------- 모바일 (≤900px): 사이드바 상단 접이형 → 세로 스택 ---------- */
+  @media (max-width:900px){
+    .rwrap{flex-direction:column;height:auto;min-height:100vh;overflow:visible}
+    .rsidebar{
+      width:100%;height:auto;max-height:38vh;
+      border-right:none;border-bottom:1px solid var(--line);
+    }
+    .rsb-head{padding:0 16px 12px 44px}
+    .rmain{height:62vh;min-height:420px}
+  }
+
+  /* ---------- 좌측 햄버거 메뉴 (전역 네비 · index.html 공용) ---------- */
+  .hmenu-trigger{
+    position:fixed;left:0;top:50%;transform:translateY(-50%);z-index:10000;
+    width:24px;height:34px;border:1px solid var(--line);border-left:none;border-radius:0 8px 8px 0;
+    background:var(--card);color:var(--ink-3);font-size:13px;line-height:1;padding:0;
+    display:flex;align-items:center;justify-content:center;cursor:pointer;
+    opacity:.4;transition:opacity .18s ease;
+  }
+  .hmenu-trigger:hover,.hmenu.open .hmenu-trigger{opacity:1}
+  .hmenu-panel{
+    position:fixed;left:0;top:0;height:100vh;width:196px;z-index:9999;
+    background:var(--card);border-right:1px solid var(--line);
+    box-shadow:3px 0 18px rgba(0,0,0,.10);
+    padding:54px 0 20px;display:flex;flex-direction:column;gap:2px;
+    transform:translateX(-100%);transition:transform .2s ease;
+  }
+  .hmenu.open .hmenu-panel{transform:translateX(0)}
+  .hmenu-item{
+    display:block;padding:10px 20px;font-size:12.5px;font-weight:500;
+    color:var(--ink-2);text-decoration:none;letter-spacing:.1px;
+  }
+  .hmenu-item:hover{background:var(--line-2);color:var(--ink)}
+  .hmenu-item.active{color:var(--ink);font-weight:700;background:var(--line-2);
+    box-shadow:inset 3px 0 0 var(--info)}
+</style>
+</head>
+<body>
+
+<!-- ===== 좌측 햄버거 메뉴 (전역 네비) ===== -->
+<div class="hmenu" id="hmenu">
+  <button type="button" class="hmenu-trigger" id="hmenuTrigger" aria-label="메뉴 열기">☰</button>
+  <nav class="hmenu-panel" id="hmenuPanel" aria-label="사이트 메뉴">
+    <a href="index.html" class="hmenu-item">대시보드</a>
+    <a href="reports.html" class="hmenu-item active">분석 리포트</a>
+  </nav>
+</div>
+<script>
+(function(){
+  "use strict";
+  var m=document.getElementById('hmenu'),
+      trg=document.getElementById('hmenuTrigger'),
+      panel=document.getElementById('hmenuPanel');
+  if(!m||!trg||!panel)return;
+  var closeTimer=null;
+  function openMenu(){ clearTimeout(closeTimer); m.classList.add('open'); }
+  function scheduleClose(){ clearTimeout(closeTimer); closeTimer=setTimeout(function(){m.classList.remove('open');},200); }
+  trg.addEventListener('mouseenter', openMenu);
+  panel.addEventListener('mouseenter', openMenu);
+  trg.addEventListener('mouseleave', scheduleClose);
+  panel.addEventListener('mouseleave', scheduleClose);
+  trg.addEventListener('click', function(e){
+    e.stopPropagation();
+    if(m.classList.contains('open')) m.classList.remove('open'); else openMenu();
+  });
+  document.addEventListener('click', function(e){
+    if(!m.contains(e.target)) m.classList.remove('open');
+  });
+})();
+</script>
+
+<!-- ===== 리포트 뷰어 ===== -->
+<div class="rwrap">
+  <aside class="rsidebar">
+    <div class="rsb-head">
+      <h1>분석 리포트</h1>
+      <div class="sub">레짐 · 방향성 심층 분석</div>
+    </div>
+    <div class="rlist" id="rList"><div class="rempty">불러오는 중…</div></div>
+  </aside>
+  <main class="rmain" id="rMain"><div class="rempty-main">리포트를 선택하세요</div></main>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  var listEl=document.getElementById('rList'), mainEl=document.getElementById('rMain');
+  var REPORTS=[];
+  var ESC_MAP={'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'};
+  function esc(v){return String(v==null?'':v).replace(/[&<>"']/g,function(c){return ESC_MAP[c];});}
+
+  function render(){
+    if(!REPORTS.length){
+      listEl.innerHTML='<div class="rempty">등록된 리포트가 없습니다.</div>';
+      return;
+    }
+    listEl.innerHTML=REPORTS.map(function(r){
+      return '<button type="button" class="ritem" data-id="'+esc(r.id)+'">'+
+        '<div class="rt-title">'+esc(r.title)+'</div>'+
+        '<div class="rt-date">'+esc(r.date)+'</div>'+
+        '<div class="rt-sum">'+esc(r.summary||'')+'</div></button>';
+    }).join('');
+    listEl.querySelectorAll('.ritem').forEach(function(btn){
+      btn.addEventListener('click', function(){ selectReport(btn.getAttribute('data-id'), true); });
+    });
+  }
+
+  function selectReport(id, updateHash){
+    var r=null;
+    for(var i=0;i<REPORTS.length;i++){ if(REPORTS[i].id===id){ r=REPORTS[i]; break; } }
+    if(!r)return;
+    listEl.querySelectorAll('.ritem').forEach(function(b){
+      b.classList.toggle('active', b.getAttribute('data-id')===id);
+    });
+    mainEl.innerHTML='<iframe src="'+esc(r.file)+'" title="'+esc(r.title)+'" loading="lazy"></iframe>';
+    if(updateHash && location.hash.slice(1)!==id){ location.hash=id; }
+  }
+
+  function activeId(){
+    var el=listEl.querySelector('.ritem.active');
+    return el?el.getAttribute('data-id'):null;
+  }
+
+  function applyHash(){
+    var id=location.hash.replace(/^#/,'');
+    var exists=false;
+    for(var i=0;i<REPORTS.length;i++){ if(REPORTS[i].id===id){ exists=true; break; } }
+    if(exists){ if(activeId()!==id) selectReport(id,false); }
+    else if(REPORTS.length && !activeId()){ selectReport(REPORTS[0].id,false); }
+  }
+
+  window.addEventListener('hashchange', applyHash);
+
+  fetch('reports/manifest.json?_='+Date.now())
+    .then(function(r){ return r.ok?r.json():null; })
+    .then(function(j){
+      REPORTS=(j&&Array.isArray(j.reports))?j.reports:[];
+      render();
+      applyHash();
+    })
+    .catch(function(){
+      listEl.innerHTML='<div class="rempty">manifest.json 로드 실패</div>';
+    });
+})();
+</script>
+</body>
+</html>

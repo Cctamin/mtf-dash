@@ -219,6 +219,31 @@
   .legacy-link:hover{opacity:1;text-decoration:underline}
   #diag{position:fixed;left:12px;bottom:6px;font-size:10px;color:var(--down);font-family:var(--mono)}
 
+  /* ---------- 좌측 햄버거 메뉴 (전역 네비 · index.html/reports.html 공용) ---------- */
+  .hmenu-trigger{
+    position:fixed;left:0;top:50%;transform:translateY(-50%);z-index:10000;
+    width:24px;height:34px;border:1px solid var(--line);border-left:none;border-radius:0 8px 8px 0;
+    background:var(--card);color:var(--ink-3);font-size:13px;line-height:1;padding:0;
+    display:flex;align-items:center;justify-content:center;cursor:pointer;
+    opacity:.4;transition:opacity .18s ease;
+  }
+  .hmenu-trigger:hover,.hmenu.open .hmenu-trigger{opacity:1}
+  .hmenu-panel{
+    position:fixed;left:0;top:0;height:100vh;width:196px;z-index:9999;
+    background:var(--card);border-right:1px solid var(--line);
+    box-shadow:3px 0 18px rgba(0,0,0,.10);
+    padding:54px 0 20px;display:flex;flex-direction:column;gap:2px;
+    transform:translateX(-100%);transition:transform .2s ease;
+  }
+  .hmenu.open .hmenu-panel{transform:translateX(0)}
+  .hmenu-item{
+    display:block;padding:10px 20px;font-size:12.5px;font-weight:500;
+    color:var(--ink-2);text-decoration:none;letter-spacing:.1px;
+  }
+  .hmenu-item:hover{background:var(--line-2);color:var(--ink)}
+  .hmenu-item.active{color:var(--ink);font-weight:700;background:var(--line-2);
+    box-shadow:inset 3px 0 0 var(--info)}
+
   /* ==========================================================
      모바일 반응형 (≤900px) — 세로 나열 스크롤 레이아웃
      데스크톱 규칙은 위 선언을 그대로 두고, 여기서만 재정의한다.
@@ -288,6 +313,39 @@
 </style>
 </head>
 <body>
+
+<!-- ===== 좌측 햄버거 메뉴 (전역 네비) ===== -->
+<div class="hmenu" id="hmenu">
+  <button type="button" class="hmenu-trigger" id="hmenuTrigger" aria-label="메뉴 열기">☰</button>
+  <nav class="hmenu-panel" id="hmenuPanel" aria-label="사이트 메뉴">
+    <a href="index.html" class="hmenu-item active">대시보드</a>
+    <a href="reports.html" class="hmenu-item">분석 리포트</a>
+  </nav>
+</div>
+<script>
+(function(){
+  "use strict";
+  var m=document.getElementById('hmenu'),
+      trg=document.getElementById('hmenuTrigger'),
+      panel=document.getElementById('hmenuPanel');
+  if(!m||!trg||!panel)return;
+  var closeTimer=null;
+  function openMenu(){ clearTimeout(closeTimer); m.classList.add('open'); }
+  function scheduleClose(){ clearTimeout(closeTimer); closeTimer=setTimeout(function(){m.classList.remove('open');},200); }
+  trg.addEventListener('mouseenter', openMenu);
+  panel.addEventListener('mouseenter', openMenu);
+  trg.addEventListener('mouseleave', scheduleClose);
+  panel.addEventListener('mouseleave', scheduleClose);
+  trg.addEventListener('click', function(e){
+    e.stopPropagation();
+    if(m.classList.contains('open')) m.classList.remove('open'); else openMenu();
+  });
+  document.addEventListener('click', function(e){
+    if(!m.contains(e.target)) m.classList.remove('open');
+  });
+})();
+</script>
+
 <div class="wrap">
 
   <!-- ===== 헤더 스트립 ===== -->
