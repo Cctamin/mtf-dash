@@ -94,11 +94,12 @@
 
   /* ---------- 좌측 햄버거 메뉴 (전역 네비 · index.html 공용) ---------- */
   .hmenu-trigger{
-    position:fixed;left:0;top:50%;transform:translateY(-50%);z-index:10000;
-    width:24px;height:34px;border:1px solid var(--line);border-left:none;border-radius:0 8px 8px 0;
-    background:var(--card);color:var(--ink-3);font-size:13px;line-height:1;padding:0;
+    position:fixed;left:10px;top:10px;z-index:10000;
+    width:30px;height:30px;border:1px solid var(--line);border-radius:8px;
+    background:var(--card);color:var(--ink-3);font-size:14px;line-height:1;padding:0;
     display:flex;align-items:center;justify-content:center;cursor:pointer;
-    opacity:.4;transition:opacity .18s ease;
+    opacity:.55;transition:opacity .18s ease,box-shadow .18s ease;
+    box-shadow:0 1px 4px rgba(0,0,0,.08);
   }
   .hmenu-trigger:hover,.hmenu.open .hmenu-trigger{opacity:1}
   .hmenu-panel{

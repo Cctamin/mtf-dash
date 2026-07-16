@@ -20,6 +20,8 @@
     --neutral:#b6b4ac;        /* 레짐 중립(무채색 = 엣지 없음) */
     --up-wash:#12855f1a;
     --down-wash:#c8324b1a;
+    --warn-wash:#c47a001a;
+    --mut-wash:#8f8d861a;
     --mono:ui-monospace,"SF Mono",SFMono-Regular,"JetBrains Mono",Menlo,monospace;
     --sans:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Pretendard","Segoe UI",Roboto,sans-serif;
   }
@@ -38,7 +40,7 @@
   /* ---------- 헤더 스트립 ---------- */
   .head{
     display:flex;align-items:center;gap:22px;
-    padding:2px 2px 0;flex:0 0 auto;
+    padding:2px 2px 0 34px;flex:0 0 auto; /* left 34px = 좌상단 햄버거 트리거(10~40px) 겹침 방지 여백 */
   }
   .brand{display:flex;align-items:center;gap:10px}
   .brand h1{font-size:15px;font-weight:700;letter-spacing:-.2px;margin:0}
@@ -108,17 +110,23 @@
   .card-h .meta{font-size:10px;color:var(--ink-3)}
   .colstack{display:flex;flex-direction:column;gap:12px;min-height:0;overflow:hidden}
 
-  /* 포지션 카드 */
-  .pos-state{display:flex;align-items:center;gap:9px;margin-bottom:4px}
-  .pos-tag{font-size:15px;font-weight:700;letter-spacing:-.2px}
-  .pos-tag.long{color:var(--up)} .pos-tag.short{color:var(--down)}
-  .pos-side{font-size:11px;color:var(--ink-3);font-family:var(--mono);padding-top:1px}
-  .pos-reason{font-size:11px;color:var(--ink-3);line-height:1.45;margin-bottom:12px}
-  .pos-reason b{color:var(--warn);font-weight:600}
+  /* 포지션 카드 — 상태 배지(관망/롱/숏) + 간결 3줄(방향·진입가·미실현손익) */
+  .pos-status{
+    display:inline-flex;align-items:center;gap:8px;font-size:19px;font-weight:750;
+    letter-spacing:-.3px;padding:7px 14px;border-radius:10px;margin-bottom:12px;
+  }
+  .pos-status .dot{width:9px;height:9px;border-radius:50%;flex:0 0 auto}
+  .pos-status.long{color:var(--up);background:var(--up-wash)}
+  .pos-status.long .dot{background:var(--up)}
+  .pos-status.short{color:var(--down);background:var(--down-wash)}
+  .pos-status.short .dot{background:var(--down)}
+  .pos-status.flat{color:var(--ink-3);background:var(--line-2)}
+  .pos-status.flat .dot{background:var(--neutral)}
   .kv{display:flex;justify-content:space-between;align-items:baseline;
     padding:5px 0;border-top:1px solid var(--line-2);font-size:12px}
   .kv .k{color:var(--ink-3);font-size:11px}
   .kv .v{font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:12px}
+  .kv .v .sub{font-size:10.5px;margin-left:4px}
 
   /* 리미터 게이지 */
   .lim-h{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:9px}
@@ -167,7 +175,16 @@
   .st-body{padding-top:0}
   .st-t{font-size:12px;font-weight:600;line-height:1.2}
   .step.cur .st-t{color:var(--warn)}
-  .st-s{font-size:10.5px;color:var(--ink-3);margin-top:1px}
+  .st-s{margin-top:3px}
+  /* 상태 배지(pill) — 롱=green / 숏=red / 중립=amber / 대기·비활성=muted gray */
+  .pill{display:inline-flex;align-items:center;font-size:10.5px;font-weight:650;
+    padding:2px 8px;border-radius:999px;line-height:1.4;white-space:nowrap}
+  .pill.long{color:var(--up);background:var(--up-wash)}
+  .pill.short{color:var(--down);background:var(--down-wash)}
+  .pill.neutral{color:var(--warn);background:var(--warn-wash)}
+  .pill.ok{color:var(--up);background:var(--up-wash)}
+  .pill.block{color:var(--down);background:var(--down-wash)}
+  .pill.wait{color:var(--ink-3);background:var(--mut-wash)}
 
   /* 편차 위젯 */
   .dev-scroll{flex:1 1 0;min-height:0;overflow-y:auto}
@@ -221,11 +238,12 @@
 
   /* ---------- 좌측 햄버거 메뉴 (전역 네비 · index.html/reports.html 공용) ---------- */
   .hmenu-trigger{
-    position:fixed;left:0;top:50%;transform:translateY(-50%);z-index:10000;
-    width:24px;height:34px;border:1px solid var(--line);border-left:none;border-radius:0 8px 8px 0;
-    background:var(--card);color:var(--ink-3);font-size:13px;line-height:1;padding:0;
+    position:fixed;left:10px;top:10px;z-index:10000;
+    width:30px;height:30px;border:1px solid var(--line);border-radius:8px;
+    background:var(--card);color:var(--ink-3);font-size:14px;line-height:1;padding:0;
     display:flex;align-items:center;justify-content:center;cursor:pointer;
-    opacity:.4;transition:opacity .18s ease;
+    opacity:.55;transition:opacity .18s ease,box-shadow .18s ease;
+    box-shadow:0 1px 4px rgba(0,0,0,.08);
   }
   .hmenu-trigger:hover,.hmenu.open .hmenu-trigger{opacity:1}
   .hmenu-panel{
@@ -305,10 +323,11 @@
 
     /* 가독성: 자잘한 라벨류 최소 11px 보장 */
     .hstat .k,.card-h .meta,.rg-title,.rg-legend,.rg-axis,.lim-scale,
-    .dev-tbl th,.trd-tbl th,.cal-dow span,.cal-foot,.pos-side,.kv .k,
-    .st-s,.mac .ml,.dev-note,.cal-cell .cd,.edge-lbl,.rg-cap{
+    .dev-tbl th,.trd-tbl th,.cal-dow span,.cal-foot,.kv .k,
+    .mac .ml,.dev-note,.cal-cell .cd,.edge-lbl,.rg-cap{
       font-size:11px;
     }
+    .pill{font-size:11px}
   }
 </style>
 </head>
@@ -405,15 +424,12 @@
     <div class="colstack">
       <div class="card" style="flex:0 0 auto">
         <div class="card-h"><h3>포지션</h3><span class="meta">BTCUSDT · 1h</span></div>
-        <div class="pos-state">
-          <span class="pos-tag mut" id="posTag">—</span>
-          <span class="pos-side" id="posSide">—</span>
+        <div class="pos-status flat" id="posStatus"><span class="dot"></span><span id="posStatusTxt">—</span></div>
+        <div id="posDetail" style="display:none">
+          <div class="kv"><span class="k">방향</span><span class="v" id="posDir">—</span></div>
+          <div class="kv"><span class="k">진입가</span><span class="v" id="posEntry">—</span></div>
+          <div class="kv"><span class="k">미실현 손익</span><span class="v" id="posUpnl">—</span></div>
         </div>
-        <div class="pos-reason" id="posReason">—</div>
-        <div class="kv"><span class="k">방향</span><span class="v mut" id="posDir">—</span></div>
-        <div class="kv"><span class="k">진입가</span><span class="v mut" id="posEntry">—</span></div>
-        <div class="kv"><span class="k">현손익 (미실현)</span><span class="v" id="posUpnl">—</span></div>
-        <div class="kv"><span class="k">직전 청산</span><span class="v" id="posLast">—</span></div>
       </div>
 
       <div class="card" style="flex:0 0 auto">
@@ -625,50 +641,41 @@
     mark.style.background=val<0?DOWN:(val>0?UP:NEU);
   }
 
-  /* ===== 포지션 카드 ===== */
+  /* ===== 포지션 카드 =====
+     단순화: 최상단 큰 상태(관망/롱/숏)만 즉시 색으로 구분, 그 아래 방향·진입가·미실현손익 3줄만.
+     FLAT(관망)일 때는 3줄 블록을 숨김(설명문 대신 상태 배지 하나로 충분 — 깔끔한 쪽 선택). */
   function renderPosition(s){
     var pos=s.position||{}, side=(pos.side||'flat').toLowerCase();
-    var tc=s.trend_context||{}, reg=(s.signal&&s.signal.regime_daily_trend)||'neutral';
-    var tag=document.getElementById('posTag'), sideEl=document.getElementById('posSide');
     var inPos=side!=='flat';
-    if(inPos){
-      tag.textContent=side==='long'?'롱 보유':'숏 보유';
-      tag.className='pos-tag '+side;
-    } else { tag.textContent='관망'; tag.className='pos-tag mut'; }
-    sideEl.textContent=side+" · size "+(pos.size!=null?Math.abs(Number(pos.size)):0);
-    // reason
-    var t4=trendKo(tc['4h']), t1=trendKo(tc['1d']||reg), tr=trendKo(reg);
-    var reason=document.getElementById('posReason');
-    if(reg==='neutral'){
-      reason.innerHTML='일봉 레짐 <b>중립</b> → 진입 게이트 잠김. 4h 편향은 <span class="'+t4.cls+'">'+t4.t+'</span>, 1d는 '+t1.t+'으로 방향 미확정.';
-    } else if(inPos){
-      reason.innerHTML='일봉 레짐 <span class="'+tr.cls+'">'+tr.t+'</span> 확정 → '+(side==='long'?'롱':'숏')+' 보유 중. 4h 편향 <span class="'+t4.cls+'">'+t4.t+'</span>.';
-    } else {
-      reason.innerHTML='일봉 레짐 <span class="'+tr.cls+'">'+tr.t+'</span> — '+(side==='long'?'롱':'숏')+' 진입 대기. 4h 편향 <span class="'+t4.cls+'">'+t4.t+'</span>.';
-    }
-    document.getElementById('posDir').textContent=inPos?(side==='long'?'롱 ▲':'숏 ▼'):'— (없음)';
+    var st=document.getElementById('posStatus'), stTxt=document.getElementById('posStatusTxt');
+    var detail=document.getElementById('posDetail');
+    if(side==='long'){ stTxt.textContent='롱'; st.className='pos-status long'; }
+    else if(side==='short'){ stTxt.textContent='숏'; st.className='pos-status short'; }
+    else { stTxt.textContent='관망'; st.className='pos-status flat'; }
+
+    if(!inPos){ detail.style.display='none'; return; }
+    detail.style.display='';
+    document.getElementById('posDir').innerHTML=(side==='long'?'롱 ▲':'숏 ▼');
+    document.getElementById('posDir').className='v '+(side==='long'?'up':'down');
     document.getElementById('posEntry').textContent=(pos.entry_price!=null)?fmtInt(pos.entry_price):'—';
-    // 미실현 손익
+    // 미실현 손익 (USD + %)
     var upnl=document.getElementById('posUpnl');
-    if(inPos&&pos.entry_price!=null){
+    if(pos.entry_price!=null){
       var ps=s.price_series||[], lastPx=ps.length?ps[ps.length-1][4]:null;
       if(lastPx!=null){
         var dir=side==='long'?1:-1, sz=Math.abs(Number(pos.size||0));
         var u=(lastPx-pos.entry_price)*dir*sz;
-        upnl.textContent=fmtSigned(u); upnl.className='v '+(u>=0?'up':'down');
+        var pct=dir*(lastPx-pos.entry_price)/pos.entry_price*100;
+        upnl.innerHTML=fmtSigned(u)+' <span class="sub">'+fmtPct(pct)+'</span>';
+        upnl.className='v '+(u>=0?'up':'down');
       } else { upnl.textContent="—"; upnl.className='v mut'; }
-    } else { upnl.textContent="$0.00"; upnl.className='v'; }
-    // 직전 청산 = closed_trades 마지막
-    var ct=s.closed_trades||[], lastT=ct.length?ct[ct.length-1]:null;
-    var le=document.getElementById('posLast');
-    if(lastT){
-      var d=new Date(Date.parse(lastT.exit_time));
-      le.textContent=fmtPct(lastT.return_pct)+" · "+fmtMD(d);
-      le.className='v '+(lastT.return_pct>=0?'up':'down');
-    } else { le.textContent="—"; le.className='v mut'; }
+    } else { upnl.textContent="—"; upnl.className='v mut'; }
   }
 
-  /* ===== 진입 허들 (기존 renderBotPath 게이트 로직 재사용) ===== */
+  /* ===== 진입 허들 (기존 renderBotPath 게이트 로직 재사용) =====
+     상태 배지(pill) 색상 규칙: 롱=green(long) / 숏=red(short) / 중립=amber(neutral) /
+     대기·비활성=muted gray(wait). 게이트 억제(regime_suppressed)는 진입을 막는 부정 상태라
+     숏과 동일 계열(red/block)로, 게이트 허용(통과)은 롱과 동일 계열(green/ok)로 묶었다. */
   function renderHurdles(s){
     var sg=s.signal||{}, pos=s.position||{}, side=(pos.side||'flat').toLowerCase();
     var inPos=side!=='flat';
@@ -677,10 +684,17 @@
     var h2=!!(sg.long_signal_raw||sg.short_signal_raw);
     var h3=!!(sg.long_signal||sg.short_signal);
     var steps=[
-      {t:'추세 확정', done:h1, sub:h1?trk.t+' 확정':'중립 — 잠김'},
-      {t:'진입 신호', done:h2, sub:h2?(sg.long_signal_raw?'롱 ▲':'숏 ▼'):'대기 (신호 없음)'},
-      {t:'게이트 통과', done:h3, sub:sg.regime_suppressed?'regime 억제':(h3?'허용':'대기')},
-      {t:'포지션 진입', done:inPos, sub:inPos?(side==='long'?'롱 진입':'숏 진입'):'대기'}
+      {t:'추세 확정', done:h1,
+        sub:h1?trk.t+' 확정':'중립 — 잠김', pill:tr==='bullish'?'long':(tr==='bearish'?'short':'neutral')},
+      {t:'진입 신호', done:h2,
+        sub:h2?(sg.long_signal_raw?'롱 ▲':'숏 ▼'):'대기 (신호 없음)',
+        pill:sg.long_signal_raw?'long':(sg.short_signal_raw?'short':'wait')},
+      {t:'게이트 통과', done:h3,
+        sub:sg.regime_suppressed?'regime 억제':(h3?'허용':'대기'),
+        pill:sg.regime_suppressed?'block':(h3?'ok':'wait')},
+      {t:'포지션 진입', done:inPos,
+        sub:inPos?(side==='long'?'롱 진입':'숏 진입'):'대기',
+        pill:side==='long'?'long':(side==='short'?'short':'wait')}
     ];
     var cleared=0; for(var i=0;i<steps.length;i++){ if(steps[i].done)cleared++; else break; }
     var html=steps.map(function(st,i){
@@ -690,7 +704,7 @@
       var num=st.done?'✓':(i+1);
       return '<div class="step '+cls+'"><div class="st-dot">'+num+'</div>'+
         '<div class="st-body"><div class="st-t'+(cls==='cur'||cls==='done'?'':' mut')+'">'+st.t+'</div>'+
-        '<div class="st-s">'+st.sub+'</div></div></div>';
+        '<div class="st-s"><span class="pill '+st.pill+'">'+st.sub+'</span></div></div></div>';
     }).join('');
     document.getElementById('steps').innerHTML=html;
     document.getElementById('hurdlePhase').textContent='phase '+(sg.phase||'—');
