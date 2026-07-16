@@ -915,7 +915,7 @@
     sc.text=JSON.stringify({autosize:true,symbol:"COINBASE:BTCUSD",interval:"60",
       timezone:"Asia/Seoul",theme:"light",style:"1",locale:"kr",
       hide_side_toolbar:true,allow_symbol_change:false,save_image:false,calendar:false,
-      studies:["OBV@tv-basicstudies"]});
+      studies:["RSI@tv-basicstudies"]});
     // 외부 스크립트 로드 실패(네트워크 차단 등) → placeholder 안내(나머지 위젯은 정상)
     sc.onerror=function(){ box.innerHTML='<div class="tv-empty">TradingView 차트 로드 실패 (외부 embed) — 네트워크 확인</div>'; };
     box.appendChild(sc);
