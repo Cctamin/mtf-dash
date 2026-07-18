@@ -92,6 +92,29 @@
   .rg-cap{margin-top:16px;font-size:10.5px;color:var(--ink-3);line-height:1.4}
   .rg-cap b{color:var(--down);font-weight:600}
 
+  /* ---------- 레짐 내부 상태 (표시 전용 — neutral 세부유형/정렬/갭, 봇 무관) ---------- */
+  .regdet{
+    flex:0 0 auto;background:var(--card);border:1px solid var(--line);border-radius:12px;
+    padding:9px 16px;display:flex;align-items:center;gap:20px;
+  }
+  .regdet.stale{opacity:.5}
+  .regdet .rg-title{font-size:11px;font-weight:600;color:var(--ink-2);letter-spacing:.2px;white-space:nowrap;flex:0 0 auto}
+  .rd-align{position:relative;width:170px;height:30px;flex:0 0 auto}
+  .rd-track{position:absolute;left:6px;right:6px;top:15px;height:1.5px;background:var(--line)}
+  .rd-dot{position:absolute;top:9px;width:10px;height:10px;border-radius:50%;
+    transform:translateX(-50%);border:2px solid var(--card);box-shadow:0 0 0 1px var(--line)}
+  .rd-dot .lbl{position:absolute;top:-14px;left:50%;transform:translateX(-50%);
+    font-size:9px;color:var(--ink-3);white-space:nowrap}
+  .rd-dot.close{background:var(--info)}
+  .rd-dot.sma20{background:var(--warn)}
+  .rd-dot.sma50{background:var(--neutral)}
+  .rd-stats{display:flex;gap:20px;flex:1;min-width:0}
+  .rd-stat{display:flex;flex-direction:column;gap:2px;white-space:nowrap}
+  .rd-stat .k{font-size:10px;color:var(--ink-3)}
+  .rd-stat .v{font-size:13px;font-weight:650;font-family:var(--mono);font-variant-numeric:tabular-nums}
+  .rd-spark{width:64px;height:24px;flex:0 0 auto}
+  .rd-spark svg{display:block}
+
   /* ---------- 본문 그리드 ---------- */
   .grid-main{
     flex:1.85 1 0;min-height:0;display:grid;
@@ -287,6 +310,12 @@
     /* 레짐 타임라인 상단(제목+범례)도 좁은 화면에서 줄바꿈 허용 */
     .rg-top{flex-direction:column;align-items:flex-start;gap:6px}
     .rg-legend{flex-wrap:wrap;gap:6px 12px}
+
+    /* 레짐 내부 상태 카드: 좁은 화면에서 세로 스택 + 통계 줄바꿈 */
+    .regdet{flex-direction:column;align-items:flex-start;gap:10px;padding:12px 14px}
+    .rd-align{width:100%;max-width:260px}
+    .rd-stats{flex-wrap:wrap;gap:10px 20px;width:100%}
+    .rd-spark{align-self:flex-start}
     /* 엣지 브래킷 오버레이는 JS가 데스크톱 레이아웃 좌표계로 계산 —
        좁은 화면에서 줄바꿈된 범례와 겹칠 수 있어 모바일에서는 숨김 */
     .edge-bracket,.edge-lbl{display:none!important}
@@ -329,7 +358,8 @@
     /* 가독성: 자잘한 라벨류 최소 11px 보장 */
     .hstat .k,.card-h .meta,.rg-title,.rg-legend,.rg-axis,.lim-scale,
     .dev-tbl th,.trd-tbl th,.cal-dow span,.cal-foot,.kv .k,
-    .mac .ml,.dev-note,.cal-cell .cd,.edge-lbl,.rg-cap{
+    .mac .ml,.dev-note,.cal-cell .cd,.edge-lbl,.rg-cap,
+    .rd-stat .k,.rd-dot .lbl{
       font-size:11px;
     }
     .pill{font-size:11px}
@@ -428,6 +458,20 @@
       <b>하락(숏)</b>이 검증된 주력 국면 — 라이브 실거래 표본 전부 이 구간. 상승은 롱 진입 가능하나
       <b style="color:var(--warn)">실적 근거 얇음(미검증 다리)</b>. <b style="color:var(--ink-3)">중립은 양방향 게이트 잠김 — 매매 0</b>.
     </div>
+  </section>
+
+  <!-- ===== 레짐 내부 상태 (표시 전용 — neutral 세부유형/정렬/갭, 봇 매매 로직 무관) ===== -->
+  <section class="regdet" id="regDetailCard">
+    <div class="rg-title">레짐 내부 · SMA20/50 정렬</div>
+    <div class="rd-align" id="rdAlign"></div>
+    <div class="rd-stats">
+      <div class="rd-stat"><span class="k">close vs SMA20</span><span class="v num" id="rdC20">—</span></div>
+      <div class="rd-stat"><span class="k">SMA20 vs SMA50</span><span class="v num" id="rdS2050">—</span></div>
+      <div class="rd-stat"><span class="k">SMA20 상회 연속</span><span class="v num" id="rdStreak">—</span></div>
+      <div class="rd-stat"><span class="k">교차 예상</span><span class="v" id="rdCross">—</span></div>
+    </div>
+    <div class="rd-spark" id="rdSpark" title="최근 5일 SMA20 vs SMA50 갭 추세"></div>
+    <span class="pill wait" id="rdBadge">갱신 대기</span>
   </section>
 
   <!-- ===== 본문 그리드 ===== -->
@@ -546,6 +590,7 @@
   var DATA_URL_MACRO=RAW+"macro.json";
   var DATA_URL_DEV=RAW+"deviation.json";
   var DATA_URL_REGIME=RAW+"regime_history.json";
+  var DATA_URL_REGIME_DETAIL=RAW+"regime_detail.json";
 
   window.onerror=function(msg,src,ln){var d=document.getElementById('diag');if(d)d.textContent='JS 에러 @'+ln+': '+msg;return false;};
 
@@ -1007,6 +1052,93 @@
   }
 
   /* ============================================================
+     레짐 내부 상태 — regime_detail.json (표시 전용, 봇 매매 로직과 완전 무관)
+     close/SMA20/SMA50 정렬·갭·neutral 세부유형을 보여준다. 라벨/SMA 공식은
+     서버(scripts/regime_detail.py)가 regime_history.py와 동일 소스(_daily_trend_labels)
+     로 산출 — 여기서는 표시만 담당(재계산 없음).
+     ============================================================ */
+  var NEUTRAL_TYPE_KO={
+    golden_cross_pending:{t:"골든크로스 임박",cls:"long"},
+    death_cross_pending:{t:"데드크로스 임박",cls:"short"},
+    chop:{t:"혼조",cls:"neutral"}
+  };
+  function loadRegimeDetail(){
+    loadJSON('regime_detail.json',DATA_URL_REGIME_DETAIL).then(renderRegimeDetail);
+  }
+  function regimeDetailEmpty(msg){
+    var el=document.getElementById('regDetailCard');
+    if(el) el.classList.add('stale');
+    var badge=document.getElementById('rdBadge');
+    if(badge){ badge.className='pill wait'; badge.textContent=msg||'갱신 대기'; }
+    ['rdC20','rdS2050','rdStreak','rdCross'].forEach(function(id){
+      var e=document.getElementById(id); if(e){ e.textContent='—'; e.className='v num'; }
+    });
+    var al=document.getElementById('rdAlign'); if(al) al.innerHTML='';
+    var sp=document.getElementById('rdSpark'); if(sp) sp.innerHTML='';
+  }
+  function renderRegimeDetail(j){
+    if(!j){ regimeDetailEmpty(); return; }
+    var upd=j.updated_at&&Date.parse(j.updated_at);
+    var ageH=upd?(Date.now()-upd)/3600000:Infinity;
+    if(!upd||ageH>2){ regimeDetailEmpty('갱신 대기 (stale)'); return; }
+    var el=document.getElementById('regDetailCard');
+    if(el) el.classList.remove('stale');
+
+    // 배지: neutral 세부유형 우선, 아니면 label(bullish/bearish) 표시
+    var badge=document.getElementById('rdBadge');
+    var info=NEUTRAL_TYPE_KO[j.neutral_type];
+    if(info){ badge.className='pill '+info.cls; badge.textContent=info.t; }
+    else if(j.label==='bullish'){ badge.className='pill long'; badge.textContent='정배열(상승)'; }
+    else if(j.label==='bearish'){ badge.className='pill short'; badge.textContent='역배열(하락)'; }
+    else { badge.className='pill wait'; badge.textContent='—'; }
+
+    // 갭 2개 (양수 green / 음수 red)
+    var c20=document.getElementById('rdC20');
+    if(j.close_vs_sma20_pct!=null){ c20.textContent=fmtPct(j.close_vs_sma20_pct); c20.className='v num '+(j.close_vs_sma20_pct>=0?'up':'down'); }
+    else { c20.textContent='—'; c20.className='v num'; }
+    var s2050=document.getElementById('rdS2050');
+    if(j.sma20_vs_sma50_pct!=null){ s2050.textContent=fmtPct(j.sma20_vs_sma50_pct); s2050.className='v num '+(j.sma20_vs_sma50_pct>=0?'up':'down'); }
+    else { s2050.textContent='—'; s2050.className='v num'; }
+
+    document.getElementById('rdStreak').textContent=(j.days_close_above_sma20!=null)?j.days_close_above_sma20+'일':'—';
+    document.getElementById('rdCross').textContent=(j.est_days_to_cross!=null)?('~'+j.est_days_to_cross+'일(외삽)'):'—';
+
+    // ① 3단 정렬 시각화 — close/SMA20/SMA50 를 값 범위에 비례한 위치에 점으로 배치.
+    // 값이 서로 가까우면(예: 골든/데드크로스 임박) 라벨이 겹칠 수 있어 위치순으로
+    // 지그재그 높이를 줘서 겹침을 피한다.
+    var al=document.getElementById('rdAlign');
+    if(al&&j.close!=null&&j.sma20!=null&&j.sma50!=null){
+      var vals=[{k:'close',v:j.close,cls:'close'},{k:'SMA20',v:j.sma20,cls:'sma20'},{k:'SMA50',v:j.sma50,cls:'sma50'}];
+      var mn=Math.min(vals[0].v,vals[1].v,vals[2].v), mx=Math.max(vals[0].v,vals[1].v,vals[2].v);
+      var span=(mx-mn)||1;
+      vals.forEach(function(o){ o.pct=8+((o.v-mn)/span)*84; }); // 8~92% 여백 두고 배치
+      var order=vals.slice().sort(function(a,b){return a.pct-b.pct;});
+      var labelTop={}; order.forEach(function(o,i){ labelTop[o.cls]=(i%2===0)?-14:-25; });
+      var html='<div class="rd-track"></div>';
+      vals.forEach(function(o){
+        html+='<div class="rd-dot '+o.cls+'" style="left:'+o.pct.toFixed(1)+'%">'
+          +'<span class="lbl" style="top:'+labelTop[o.cls]+'px">'+o.k+'</span></div>';
+      });
+      al.innerHTML=html;
+    } else if(al){ al.innerHTML=''; }
+
+    // ⑥ 갭 5일 미니 스파크라인
+    var sp=document.getElementById('rdSpark');
+    if(sp&&j.gap_trend_5d&&j.gap_trend_5d.length>1){
+      var g=j.gap_trend_5d, w=64,h=24,pad=3;
+      var mn2=Math.min.apply(null,g), mx2=Math.max.apply(null,g);
+      var span2=(mx2-mn2)||1;
+      var pts=g.map(function(v,i){
+        var x=pad+i*((w-2*pad)/(g.length-1));
+        var y=h-pad-((v-mn2)/span2)*(h-2*pad);
+        return x.toFixed(1)+','+y.toFixed(1);
+      }).join(' ');
+      var strokeColor=g[g.length-1]>=0?UP:DOWN;
+      sp.innerHTML='<svg width="'+w+'" height="'+h+'" viewBox="0 0 '+w+' '+h+'"><polyline points="'+pts+'" fill="none" stroke="'+strokeColor+'" stroke-width="1.4"/></svg>';
+    } else if(sp){ sp.innerHTML=''; }
+  }
+
+  /* ============================================================
      로드 & 폴링
      ============================================================ */
   var LAST_STATE=null;
@@ -1032,9 +1164,11 @@
 
   loadAll();
   loadRegime();
+  loadRegimeDetail();
   mountTV();                        // 중앙 실시간 차트 1회 마운트
   setInterval(loadAll,60000);       // 60초 폴링
   setInterval(loadRegime,600000);   // 레짐은 10분마다 (일봉이라 자주 바뀌지 않음)
+  setInterval(loadRegimeDetail,600000); // 레짐 내부 상태도 10분마다 (일봉 파생)
 })();
 </script>
 </body>
