@@ -1,6 +1,13 @@
 {
   "reports": [
     {
+      "id": "sma-cross-2026-07",
+      "title": "SMA20/50 크로스 → 레짐 귀결 — 6년 전수 추적",
+      "date": "2026-07-18",
+      "file": "reports/sma-cross-2026-07.html",
+      "summary": "골든크로스 후 롱 확정 96%(close>SMA20 조건 100%), whipsaw 30일 38.5% — 현재 유사 9케이스 9/9 즉시 롱"
+    },
+    {
       "id": "neutral-anatomy-2026-07",
       "title": "Neutral 해부 — 내부 구조가 전환·지속을 예측하는가",
       "date": "2026-07-18",

@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BTC SMA20/50 크로스 → 레짐 귀결 분석 보고서</title>
+</head>
+<body>
+<style>
+:root {
+  --bull:#008300; --neut:#eda100; --bear:#e34948;
+  --bull-rgb:0,131,0; --bear-rgb:227,73,72;
+  --series-1:#2a78d6;
+  --surface:#fcfcfb; --surface-2:#f4f3f0; --card:#ffffff;
+  --text-primary:#0b0b0b; --text-secondary:#52514e; --text-muted:#86847e;
+  --border:#e3e1db; --grid:#ecece6;
+  --ok:#0ca30c; --bad:#d03b3b;
+}
+:root[data-theme="dark"], :root:not([data-theme="light"]) {}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bull:#22a722; --neut:#c98500; --bear:#e66767;
+    --bull-rgb:34,167,34; --bear-rgb:230,103,103;
+    --series-1:#3987e5;
+    --surface:#141413; --surface-2:#1f1f1d; --card:#1a1a19;
+    --text-primary:#f5f4ee; --text-secondary:#c3c2b7; --text-muted:#8f8d84;
+    --border:#33322e; --grid:#2a2a27;
+    --ok:#3cc23c; --bad:#e66767;
+  }
+}
+:root[data-theme="dark"] {
+    --bull:#22a722; --neut:#c98500; --bear:#e66767;
+    --bull-rgb:34,167,34; --bear-rgb:230,103,103;
+    --series-1:#3987e5;
+    --surface:#141413; --surface-2:#1f1f1d; --card:#1a1a19;
+    --text-primary:#f5f4ee; --text-secondary:#c3c2b7; --text-muted:#8f8d84;
+    --border:#33322e; --grid:#2a2a27;
+    --ok:#3cc23c; --bad:#e66767;
+}
+* { box-sizing:border-box; }
+body { margin:0; background:var(--surface); color:var(--text-primary);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Helvetica Neue","Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+  line-height:1.65; font-size:15px; -webkit-font-smoothing:antialiased; }
+.wrap { max-width:940px; margin:0 auto; padding:32px 22px 80px; }
+h1 { font-size:27px; font-weight:750; letter-spacing:-0.02em; margin:0 0 6px; }
+h2 { font-size:20px; font-weight:700; letter-spacing:-0.01em; margin:52px 0 6px; padding-top:18px; border-top:1px solid var(--border); }
+h3 { font-size:15px; font-weight:700; margin:26px 0 8px; color:var(--text-primary); }
+.sub { color:var(--text-muted); font-size:13px; margin:0 0 6px; }
+p { margin:10px 0; color:var(--text-secondary); }
+p.interp { color:var(--text-primary); }
+b, strong { color:var(--text-primary); font-weight:650; }
+.card { background:var(--card); border:1px solid var(--border); border-radius:14px; padding:20px 22px; margin:18px 0; }
+.tldr { border-left:4px solid var(--series-1); }
+.figwrap { background:var(--card); border:1px solid var(--border); border-radius:14px; padding:16px 14px 8px; margin:16px 0; overflow-x:auto; }
+.fcap { font-size:12.5px; color:var(--text-muted); margin:2px 4px 8px; }
+.grid-tiles { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px; margin:14px 0; }
+.tile { background:var(--surface-2); border:1px solid var(--border); border-radius:12px; padding:14px 16px; }
+.tile .k { font-size:12px; color:var(--text-muted); margin-bottom:3px; }
+.tile .v { font-size:23px; font-weight:750; letter-spacing:-0.02em; }
+.tile .v.sm { font-size:17px; }
+.tile .ci { font-size:11.5px; color:var(--text-muted); }
+.bull { color:var(--bull); } .bear { color:var(--bear); } .neut { color:var(--neut); }
+table { border-collapse:collapse; width:100%; font-size:13.5px; margin:12px 0; }
+th,td { text-align:left; padding:7px 10px; border-bottom:1px solid var(--border); }
+th { color:var(--text-muted); font-weight:600; font-size:12px; text-transform:uppercase; letter-spacing:0.03em; }
+td.mut { color:var(--text-muted); }
+td.ok { color:var(--ok); font-weight:700; } td.bad { color:var(--bad); font-weight:700; }
+tr.unrel td { color:var(--text-muted); }
+.warnbadge { display:inline-block; font-size:10.5px; background:rgba(208,59,59,.14); color:var(--bad); padding:1px 6px; border-radius:6px; margin-left:4px; }
+.curbadge { display:inline-block; font-size:10.5px; background:var(--series-1); color:#fff; padding:1px 7px; border-radius:6px; margin-left:5px; font-weight:700; }
+.chip { display:inline-block; border:1px solid var(--border); border-radius:20px; padding:4px 14px; margin:3px 6px 3px 0; font-size:12.5px; color:var(--text-secondary); background:var(--surface-2); }
+.pathflow-cap { font-size:12px; color:var(--text-muted); margin:8px 4px 0; }
+.legend { display:flex; gap:18px; flex-wrap:wrap; margin:4px 4px 10px; font-size:12.5px; color:var(--text-secondary); }
+.legend span { display:inline-flex; align-items:center; gap:6px; }
+.sw { width:11px; height:11px; border-radius:3px; display:inline-block; }
+.grid { stroke:var(--grid); stroke-width:1; }
+.tick { fill:var(--text-muted); font-size:11px; }
+.tickmut { fill:var(--text-muted); font-size:9.5px; }
+.axl { fill:var(--text-secondary); font-size:11.5px; }
+.dlabel { font-size:11.5px; font-weight:650; }
+.barval { fill:var(--text-primary); font-size:12px; font-weight:700; }
+.warnbox { background:rgba(237,161,0,.10); border:1px solid rgba(237,161,0,.35); border-radius:12px; padding:14px 18px; margin:16px 0; font-size:13.5px; }
+ul { color:var(--text-secondary); } li { margin:4px 0; }
+code { background:var(--surface-2); padding:1px 5px; border-radius:5px; font-size:12.5px; }
+.foot { color:var(--text-muted); font-size:12px; margin-top:40px; }
+.scgrid { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+@media (max-width:640px) { .scgrid { grid-template-columns:1fr; } h1{font-size:23px;} }
+@media print {
+  :root { color-scheme: light; }
+  html, body { background:#fff !important; }
+  .wrap { max-width:100%; padding:6mm 4mm; margin:0; }
+  @page { size:A4 portrait; margin:12mm 10mm; }
+  h1,h2,h3,h4 { break-after:avoid; page-break-after:avoid; }
+  h2 { margin-top:20px; }
+  .card, .figwrap, .warnbox, table, .grid-tiles, .scgrid, svg, .chip, .tile {
+    break-inside:avoid; page-break-inside:avoid;
+  }
+  .scgrid { grid-template-columns:1fr 1fr; }
+  .grid-tiles { grid-template-columns:repeat(3,1fr); }
+  tr { break-inside:avoid; page-break-inside:avoid; }
+  thead { display:table-header-group; }
+  a[href]:after { content:""; }
+  div[style*="overflow-x"] { overflow:visible !important; }
+  div[style*="overflow-x"] table { table-layout:fixed; width:100%; font-size:7.6pt; }
+  div[style*="overflow-x"] table th,
+  div[style*="overflow-x"] table td { word-break:break-word; overflow-wrap:anywhere; padding:4px 5px; }
+  div[style*="overflow-x"] table td[style*="font-size"] { font-size:7.2pt !important; }
+}
+</style>
+
+<div class="wrap">
+<h1>SMA20/50 크로스 → 레짐 귀결 — 6년 전수 추적</h1>
+<p class="sub">BTC/USDT · 라이브 봇과 동일한 leak-free 일봉 레짐 판정(<code>src.regime_gate</code>) · 2020-01-01 ~ 2026-07-17 (2390일) · SMA20↔SMA50 크로스 전수 53건(골든26·데드27) · <a href="neutral-anatomy-2026-07.html">중립(neutral) 내부 구조 분석</a>의 후속편 — 크로스 「전」의 반전 신호를 다뤘다면 이 보고서는 크로스가 「발생한 순간과 그 후」를 추적한다 · 생성 2026-07-18 JST</p>
+
+<div class="card tldr">
+<h3 style="margin-top:0">TL;DR — 크로스가 뜨면, 조건이 전부다</h3>
+<p class="interp">6년간 골든크로스(SMA20↑SMA50) 26건, 데드크로스(SMA20↓SMA50) 27건, 총 53건을 leak-free로 전수 추적했다. 골든크로스는 <b>96.2%</b>[81.1–99.3] 결국 상승(bullish) 레짐으로 확정되고, 데드크로스는 <b>88.9%</b>[71.9–96.1] 하락(bearish)으로 확정된다 — 방향성 신호로서 크로스 자체는 강하다. 그런데 <b>더 강한 신호는 크로스 "순간"의 위치 조건</b>이다: <b>골든크로스가 발생하는 바로 그 날 이미 close&gt;SMA20이면(23건 중 23건) 예외 없이 100% 즉시 상승 확정</b>[85.7–100]되고, 데드크로스 순간 close&lt;SMA20이면(23건 중 23건) 예외 없이 100% 즉시 하락 확정된다. 크로스 순간 가격이 반대편에 있던 소수 사례(골든 3건·데드 4건)에서만 지연·역전이 나왔다.</p>
+<p class="interp"><b>현재 대입:</b> 오늘(07-17) close 63,932 &gt; SMA20 62,700이 <b>15일 연속</b> 유지 중이고 SMA20−SMA50 갭은 −1.67%까지 수렴해(외삽 ~2.6일 후) <b>골든크로스가 임박했지만 아직 발생하지 않았다</b>. 과거 이 조건(사전 close&gt;SMA20 연속 ≥10일)과 가장 닮은 9개 사례는 <b>9/9(100%) 즉시 상승 확정</b>[70.1–100]됐다 — 조건은 채워져 있다. 다만 <b>주의할 것은 확정 "이후"다</b>: 골든크로스 확정 후에도 30일 이내 <b>38.5%</b>[22.4–57.5] 확률로 다시 데드크로스가 나며(9개 유사사례 한정으로는 22.2%), 표본이 작아 예언이 아닌 확률적 경향으로 읽어야 한다.</p>
+
+<div>
+<span class="chip">close &gt; SMA20 <b>15일 연속</b></span>
+<span class="chip">SMA20−SMA50 갭 <b class="bear">−1.681%</b> 수렴 중</span>
+<span class="chip">골든크로스 외삽 <b class="neut">~2.6일</b> · 미발생</span>
+<span class="chip">유사사례 9/9 <b class="bull">즉시 상승 확정</b></span>
+</div>
+
+<h4 style="margin:18px 0 4px; font-size:13px; color:var(--text-muted); font-weight:700; text-transform:uppercase; letter-spacing:.03em">골든크로스 즉시확정 — 전체 vs "크로스 순간 close&gt;SMA20" 조건부</h4>
+<div class="figwrap" style="margin:8px 0">
+<div class="fcap">전체 골든크로스 26건의 즉시(0일차) 상승확정률과, 크로스 순간 close&gt;SMA20 조건을 더했을 때(23건)의 확정률. 조건 하나로 88.5%→100%.</div>
+<svg viewBox="0 0 380 270" width="100%" preserveAspectRatio="xMidYMid meet" role="img" style="max-width:380px"><line x1="48" y1="206.0" x2="364" y2="206.0" class="grid"/><text x="40" y="210.0" class="tick" text-anchor="end">0%</text><line x1="48" y1="168.8" x2="364" y2="168.8" class="grid"/><text x="40" y="172.8" class="tick" text-anchor="end">20%</text><line x1="48" y1="131.6" x2="364" y2="131.6" class="grid"/><text x="40" y="135.6" class="tick" text-anchor="end">40%</text><line x1="48" y1="94.4" x2="364" y2="94.4" class="grid"/><text x="40" y="98.4" class="tick" text-anchor="end">60%</text><line x1="48" y1="57.2" x2="364" y2="57.2" class="grid"/><text x="40" y="61.2" class="tick" text-anchor="end">80%</text><line x1="48" y1="20.0" x2="364" y2="20.0" class="grid"/><text x="40" y="24.0" class="tick" text-anchor="end">100%</text><rect x="114.7" y="41.4" width="58" height="164.6" rx="4" fill="var(--bull)"><title>88.5% (n=26)</title></rect><line x1="143.7" y1="73.9" x2="143.7" y2="27.4" stroke="var(--text-primary)" stroke-width="1.5"/><line x1="138.7" y1="73.9" x2="148.7" y2="73.9" stroke="var(--text-primary)" stroke-width="1.5"/><line x1="138.7" y1="27.4" x2="148.7" y2="27.4" stroke="var(--text-primary)" stroke-width="1.5"/><text x="143.7" y="21.4" class="barval" text-anchor="middle">88%</text><text x="143.7" y="224.0" class="tick" text-anchor="middle">골든 즉시확정</text><text x="143.7" y="237.0" class="tick" text-anchor="middle">(전체)</text><text x="143.7" y="250.0" class="tickmut" text-anchor="middle">n=26</text><rect x="239.3" y="20.0" width="58" height="186.0" rx="4" fill="var(--bull)"><title>100.0% (n=23)</title></rect><line x1="268.3" y1="46.6" x2="268.3" y2="20.0" stroke="var(--text-primary)" stroke-width="1.5"/><line x1="263.3" y1="46.6" x2="273.3" y2="46.6" stroke="var(--text-primary)" stroke-width="1.5"/><line x1="263.3" y1="20.0" x2="273.3" y2="20.0" stroke="var(--text-primary)" stroke-width="1.5"/><text x="268.3" y="14.0" class="barval" text-anchor="middle">100%</text><text x="268.3" y="224.0" class="tick" text-anchor="middle">+ close&gt;SMA20</text><text x="268.3" y="237.0" class="tick" text-anchor="middle">(크로스 순간)</text><text x="268.3" y="250.0" class="tickmut" text-anchor="middle">n=23</text></svg>
+</div>
+
+<h4 style="margin:18px 0 4px; font-size:13px; color:var(--text-muted); font-weight:700; text-transform:uppercase; letter-spacing:.03em">핵심 룰 3줄</h4>
+<ul style="margin:4px 0 12px">
+<li>① 크로스는 강하다 — 골든 96.2%·데드 88.9% 결국 해당 방향으로 확정.</li>
+<li>② 하지만 "크로스 순간의 위치"가 전부다 — close가 SMA20 같은 편이면 100% 즉시 확정, 반대편이면 지연·역전 가능.</li>
+<li>③ 확정은 끝이 아니다 — 30일 내 재반전(whipsaw) 확률이 골든 38.5%·데드 37.0%로 결코 작지 않다.</li>
+</ul>
+<div class="warnbox">⚠ 표본이 작다(전체 n=26~27, 조건부 셀 n=3~4). 아래 수치는 「같은 조건의 과거 사례 빈도」이며 확률적 경향이지 예언이 아니다.</div>
+</div>
+
+<h2>현재 상태 카드</h2>
+<div class="grid-tiles">
+<div class="tile"><div class="k">현재 레짐</div><div class="v neut">중립</div><div class="ci">golden_cross_pending</div></div>
+<div class="tile"><div class="k">close vs SMA20</div><div class="v bull sm">63,932 &gt; 62,700</div><div class="ci">15일 연속</div></div>
+<div class="tile"><div class="k">SMA20−SMA50 갭</div><div class="v bear sm">-1.681%</div><div class="ci">수렴 중</div></div>
+<div class="tile"><div class="k">골든크로스 외삽</div><div class="v neut">~2.6일</div><div class="ci">아직 미발생</div></div>
+<div class="tile"><div class="k">유사사례 즉시확정</div><div class="v bull">9/9</div><div class="ci">CI 70.1%–100% (n=9)</div></div>
+<div class="tile"><div class="k">확정 후 30일 되돌림</div><div class="v bear">38.5%</div><div class="ci">CI 22.4%–57.5% (n=26)</div></div>
+</div>
+
+<h2>1. 이벤트 전수 개요 — 골든 26건 · 데드 27건</h2>
+<p>2020-01-01~2026-07-17 leak-free 일봉(fixture <code>tests/fixtures/real_btc_1h_2020plus.csv</code> 일봉 리샘플 + 최근 구간 Binance 완결봉 보완) 위에서 SMA20이 SMA50을 상향 돌파하면 골든크로스, 하향 돌파하면 데드크로스로 정의했다(첫 60일 워밍업 구간 제외). 총 53건(골든 26 · 데드 27)이 발생했다. 아래는 골든크로스 26건 전수다 — <b>크로스 시점 상태</b>는 크로스가 일어난 그 날의 close vs SMA20 위치, <b>귀결</b>은 이후 레짐 라벨이 처음으로 확정된 방향, <b>확정일수</b>는 크로스일로부터 그 확정까지 걸린 일수다.</p>
+<div class="figwrap" style="overflow-x:auto">
+<table>
+<tr><th>날짜</th><th>크로스 시점 상태</th><th>귀결</th><th>확정일수</th></tr>
+<tr><td>2020-04-19</td><td>close&gt;SMA20</td><td class="bull">상승(bullish)</td><td>즉시(0일)</td></tr>
+<tr><td>2020-07-27</td><td>close&gt;SMA20</td><td class="bull">상승(bullish)</td><td>즉시(0일)</td></tr>
+<tr><td>2020-10-13</td><td>close&gt;SMA20</td><td class="bull">상승(bullish)</td><td>즉시(0일)</td></tr>
+<tr><td>2021-08-01</td><td>close&gt;SMA20</td><td class="bull">상승(bullish)</td><td>즉시(0일)</td></tr>
+<tr><td>2021-10-11</td><td>close&gt;SMA20</td><td class="bull">상승(bullish)</td><td>즉시(0일)</td></tr>
+<tr><td>2022-02-19</td><td>close&lt;SMA20</td><td class="bull">상승(bullish)</td><td>9일</td></tr>
+<tr><td>2022-03-19</td><td>close&gt;SMA20</td><td class="bull">상승(bullish)</td><td>즉시(0일)</td></tr>
+<tr><td>2022-03-27</td><td>close&gt;SMA20</td><td class="bull">상승(bullish)</td><td>즉시(0일)</td></tr>
+<tr><td>2022-07-28</td><td>close&gt;SMA20</td><td class="bull">상승(bullish)</td><td>즉시(0일)</td></tr>
+<tr><td>2022-10-31</td><td>close&gt;SMA20</td><td class="bull">상승(bullish)</td><td>즉시(0일)</td></tr>
+<tr class="unrel"><td>2022-12-26</td><td>close&lt;SMA20</td><td class="bear">하락(bearish)</td><td>9일</td></tr>
+<tr><td>2023-01-12</td><td>close&gt;SMA20</td><td class="bull">상승(bullish)</td><td>즉시(0일)</td></tr>
+<tr><td>2023-03-19</td><td>close&gt;SMA20</td><td class="bull">상승(bullish)</td><td>즉시(0일)</td></tr>
+<tr><td>2023-06-25</td><td>close&gt;SMA20</td><td class="bull">상승(bullish)</td><td>즉시(0일)</td></tr>
+<tr><td>2023-10-01</td><td>close&gt;SMA20</td><td class="bull">상승(bullish)</td><td>즉시(0일)</td></tr>
+<tr><td>2024-02-12</td><td>close&gt;SMA20</td><td class="bull">상승(bullish)</td><td>즉시(0일)</td></tr>
+<tr><td>2024-05-25</td><td>close&gt;SMA20</td><td class="bull">상승(bullish)</td><td>즉시(0일)</td></tr>
+<tr><td>2024-07-28</td><td>close&gt;SMA20</td><td class="bull">상승(bullish)</td><td>즉시(0일)</td></tr>
+<tr><td>2024-09-25</td><td>close&gt;SMA20</td><td class="bull">상승(bullish)</td><td>즉시(0일)</td></tr>
+<tr><td>2025-01-21</td><td>close&gt;SMA20</td><td class="bull">상승(bullish)</td><td>즉시(0일)</td></tr>
+<tr><td>2025-04-24</td><td>close&gt;SMA20</td><td class="bull">상승(bullish)</td><td>즉시(0일)</td></tr>
+<tr><td>2025-07-08</td><td>close&gt;SMA20</td><td class="bull">상승(bullish)</td><td>즉시(0일)</td></tr>
+<tr><td>2025-09-27</td><td>close&lt;SMA20</td><td class="bull">상승(bullish)</td><td>2일</td></tr>
+<tr><td>2026-01-08</td><td>close&gt;SMA20</td><td class="bull">상승(bullish)</td><td>즉시(0일)</td></tr>
+<tr><td>2026-03-20</td><td>close&gt;SMA20</td><td class="bull">상승(bullish)</td><td>즉시(0일)</td></tr>
+<tr><td>2026-04-11</td><td>close&gt;SMA20</td><td class="bull">상승(bullish)</td><td>즉시(0일)</td></tr>
+</table>
+</div>
+<p class="interp">골든 26건 중 <b class="bull">25건(96.2%)</b>이 결국 상승 확정, 유일한 예외는 <b>2022-12-26</b> 하나뿐이다(크로스 순간 이미 neutral·close&lt;SMA20이었고 9일 뒤 하락으로 확정됐다 — 2022년 FTX 붕괴 직후 약세장 국면). 지연 3건(2일·9일·9일)은 <b>모두</b> 크로스 시점에 close&lt;SMA20(가격이 아직 단기선을 회복하지 못한 채 SMA끼리만 교차)이었다는 공통점이 있다.</p>
+<p>데드크로스 27건은 개별 나열 대신 집계만 제시한다: <b class="bear">즉시(0일) 하락확정 23/27=85.2%</b>[67.5–94.1], <b class="bear">최종 하락확정 24/27=88.9%</b>[71.9–96.1], 상승 반전 3건(모두 크로스 순간 close&gt;SMA20). 골든·데드가 대칭적인 구조를 보인다 — 다음 절에서 조건별로 쪼갠다.</p>
+
+<h2>2. 귀결과 조건 분해 — "크로스"가 아니라 "위치"가 신호다</h2>
+<div class="figwrap"><div class="fcap">즉시(0일차) 확정률과 최종 확정률 비교. 골든(상승 확정 기준, 파랑불 아님 bull색)·데드(하락 확정 기준, bear색) 모두 즉시→최종으로 소폭 상승한다.</div>
+<svg viewBox="0 0 520 290" width="100%" preserveAspectRatio="xMidYMid meet" role="img" style="max-width:520px"><line x1="48" y1="226.0" x2="504" y2="226.0" class="grid"/><text x="40" y="230.0" class="tick" text-anchor="end">0%</text><line x1="48" y1="184.8" x2="504" y2="184.8" class="grid"/><text x="40" y="188.8" class="tick" text-anchor="end">20%</text><line x1="48" y1="143.6" x2="504" y2="143.6" class="grid"/><text x="40" y="147.6" class="tick" text-anchor="end">40%</text><line x1="48" y1="102.4" x2="504" y2="102.4" class="grid"/><text x="40" y="106.4" class="tick" text-anchor="end">60%</text><line x1="48" y1="61.2" x2="504" y2="61.2" class="grid"/><text x="40" y="65.2" class="tick" text-anchor="end">80%</text><line x1="48" y1="20.0" x2="504" y2="20.0" class="grid"/><text x="40" y="24.0" class="tick" text-anchor="end">100%</text><rect x="92.8" y="43.7" width="58" height="182.3" rx="4" fill="var(--bull)"><title>88.5% (n=26)</title></rect><line x1="121.8" y1="79.7" x2="121.8" y2="28.2" stroke="var(--text-primary)" stroke-width="1.5"/><line x1="116.8" y1="79.7" x2="126.8" y2="79.7" stroke="var(--text-primary)" stroke-width="1.5"/><line x1="116.8" y1="28.2" x2="126.8" y2="28.2" stroke="var(--text-primary)" stroke-width="1.5"/><text x="121.8" y="22.2" class="barval" text-anchor="middle">88%</text><text x="121.8" y="244.0" class="tick" text-anchor="middle">골든</text><text x="121.8" y="257.0" class="tick" text-anchor="middle">즉시(0일)</text><text x="121.8" y="270.0" class="tickmut" text-anchor="middle">n=26</text><rect x="195.6" y="27.8" width="58" height="198.2" rx="4" fill="var(--bull)"><title>96.2% (n=26)</title></rect><line x1="224.6" y1="58.9" x2="224.6" y2="21.4" stroke="var(--text-primary)" stroke-width="1.5"/><line x1="219.6" y1="58.9" x2="229.6" y2="58.9" stroke="var(--text-primary)" stroke-width="1.5"/><line x1="219.6" y1="21.4" x2="229.6" y2="21.4" stroke="var(--text-primary)" stroke-width="1.5"/><text x="224.6" y="15.4" class="barval" text-anchor="middle">96%</text><text x="224.6" y="244.0" class="tick" text-anchor="middle">골든</text><text x="224.6" y="257.0" class="tick" text-anchor="middle">최종 확정</text><text x="224.6" y="270.0" class="tickmut" text-anchor="middle">n=26</text><rect x="298.4" y="50.5" width="58" height="175.5" rx="4" fill="var(--bear)"><title>85.2% (n=27)</title></rect><line x1="327.4" y1="86.9" x2="327.4" y2="32.2" stroke="var(--text-primary)" stroke-width="1.5"/><line x1="322.4" y1="86.9" x2="332.4" y2="86.9" stroke="var(--text-primary)" stroke-width="1.5"/><line x1="322.4" y1="32.2" x2="332.4" y2="32.2" stroke="var(--text-primary)" stroke-width="1.5"/><text x="327.4" y="26.2" class="barval" text-anchor="middle">85%</text><text x="327.4" y="244.0" class="tick" text-anchor="middle">데드</text><text x="327.4" y="257.0" class="tick" text-anchor="middle">즉시(0일)</text><text x="327.4" y="270.0" class="tickmut" text-anchor="middle">n=27</text><rect x="401.2" y="42.9" width="58" height="183.1" rx="4" fill="var(--bear)"><title>88.9% (n=27)</title></rect><line x1="430.2" y1="77.8" x2="430.2" y2="27.9" stroke="var(--text-primary)" stroke-width="1.5"/><line x1="425.2" y1="77.8" x2="435.2" y2="77.8" stroke="var(--text-primary)" stroke-width="1.5"/><line x1="425.2" y1="27.9" x2="435.2" y2="27.9" stroke="var(--text-primary)" stroke-width="1.5"/><text x="430.2" y="21.9" class="barval" text-anchor="middle">89%</text><text x="430.2" y="244.0" class="tick" text-anchor="middle">데드</text><text x="430.2" y="257.0" class="tick" text-anchor="middle">최종 확정</text><text x="430.2" y="270.0" class="tickmut" text-anchor="middle">n=27</text></svg>
+</div>
+
+<h3>조건 분해 — 크로스 "순간"의 close 위치로 쪼개면</h3>
+<div class="figwrap"><div class="fcap">크로스가 일어난 그 날, close가 SMA20의 어느 쪽에 있었는지로 4개 셀을 나눴다. 막대값 = 골든은 P(상승 확정), 데드는 P(하락 확정). 세로선 95% Wilson CI.</div>
+<svg viewBox="0 0 520 290" width="100%" preserveAspectRatio="xMidYMid meet" role="img" style="max-width:520px"><line x1="48" y1="226.0" x2="504" y2="226.0" class="grid"/><text x="40" y="230.0" class="tick" text-anchor="end">0%</text><line x1="48" y1="184.8" x2="504" y2="184.8" class="grid"/><text x="40" y="188.8" class="tick" text-anchor="end">20%</text><line x1="48" y1="143.6" x2="504" y2="143.6" class="grid"/><text x="40" y="147.6" class="tick" text-anchor="end">40%</text><line x1="48" y1="102.4" x2="504" y2="102.4" class="grid"/><text x="40" y="106.4" class="tick" text-anchor="end">60%</text><line x1="48" y1="61.2" x2="504" y2="61.2" class="grid"/><text x="40" y="65.2" class="tick" text-anchor="end">80%</text><line x1="48" y1="20.0" x2="504" y2="20.0" class="grid"/><text x="40" y="24.0" class="tick" text-anchor="end">100%</text><rect x="92.8" y="20.0" width="58" height="206.0" rx="4" fill="var(--bull)"><title>100.0% (n=23)</title></rect><line x1="121.8" y1="49.5" x2="121.8" y2="20.0" stroke="var(--text-primary)" stroke-width="1.5"/><line x1="116.8" y1="49.5" x2="126.8" y2="49.5" stroke="var(--text-primary)" stroke-width="1.5"/><line x1="116.8" y1="20.0" x2="126.8" y2="20.0" stroke="var(--text-primary)" stroke-width="1.5"/><text x="121.8" y="14.0" class="barval" text-anchor="middle">100%</text><text x="121.8" y="244.0" class="tick" text-anchor="middle">골든 ·</text><text x="121.8" y="257.0" class="tick" text-anchor="middle">close&gt;SMA20</text><text x="121.8" y="270.0" class="tickmut" text-anchor="middle">n=23</text><rect x="195.6" y="88.7" width="58" height="137.3" rx="4" fill="var(--bull)"><title>66.7% (n=3)</title></rect><line x1="224.6" y1="183.2" x2="224.6" y2="32.7" stroke="var(--text-primary)" stroke-width="1.5"/><line x1="219.6" y1="183.2" x2="229.6" y2="183.2" stroke="var(--text-primary)" stroke-width="1.5"/><line x1="219.6" y1="32.7" x2="229.6" y2="32.7" stroke="var(--text-primary)" stroke-width="1.5"/><text x="224.6" y="26.7" class="barval" text-anchor="middle">67%</text><text x="224.6" y="244.0" class="tick" text-anchor="middle">골든 ·</text><text x="224.6" y="257.0" class="tick" text-anchor="middle">close&lt;SMA20</text><text x="224.6" y="270.0" class="tickmut" text-anchor="middle">n=3</text><rect x="298.4" y="20.0" width="58" height="206.0" rx="4" fill="var(--bear)"><title>100.0% (n=23)</title></rect><line x1="327.4" y1="49.5" x2="327.4" y2="20.0" stroke="var(--text-primary)" stroke-width="1.5"/><line x1="322.4" y1="49.5" x2="332.4" y2="49.5" stroke="var(--text-primary)" stroke-width="1.5"/><line x1="322.4" y1="20.0" x2="332.4" y2="20.0" stroke="var(--text-primary)" stroke-width="1.5"/><text x="327.4" y="14.0" class="barval" text-anchor="middle">100%</text><text x="327.4" y="244.0" class="tick" text-anchor="middle">데드 ·</text><text x="327.4" y="257.0" class="tick" text-anchor="middle">close&lt;SMA20</text><text x="327.4" y="270.0" class="tickmut" text-anchor="middle">n=23</text><rect x="401.2" y="71.5" width="58" height="154.5" rx="4" fill="var(--bear)"><title>75.0% (n=4)</title></rect><line x1="430.2" y1="164.1" x2="430.2" y2="29.4" stroke="var(--text-primary)" stroke-width="1.5"/><line x1="425.2" y1="164.1" x2="435.2" y2="164.1" stroke="var(--text-primary)" stroke-width="1.5"/><line x1="425.2" y1="29.4" x2="435.2" y2="29.4" stroke="var(--text-primary)" stroke-width="1.5"/><text x="430.2" y="23.4" class="barval" text-anchor="middle">75%</text><text x="430.2" y="244.0" class="tick" text-anchor="middle">데드 ·</text><text x="430.2" y="257.0" class="tick" text-anchor="middle">close&gt;SMA20</text><text x="430.2" y="270.0" class="tickmut" text-anchor="middle">n=4</text></svg>
+</div>
+<table>
+<tr><th>조건</th><th>n</th><th>결과</th><th>95% CI</th></tr>
+<tr><td>골든 · 크로스 순간 close&gt;SMA20</td><td>23</td><td class="bull">23/23 = 100% 상승</td><td class="mut">85.7%–100%</td></tr>
+<tr class="unrel"><td>골든 · 크로스 순간 close&lt;SMA20</td><td>3</td><td>2 상승 / 1 하락</td><td class="mut">n작음 — 참고만</td></tr>
+<tr><td>데드 · 크로스 순간 close&lt;SMA20</td><td>23</td><td class="bear">23/23 = 100% 하락</td><td class="mut">85.7%–100%</td></tr>
+<tr class="unrel"><td>데드 · 크로스 순간 close&gt;SMA20</td><td>4</td><td>3 상승 / 1 하락</td><td class="mut">n작음 — 참고만</td></tr>
+</table>
+<p class="interp"><b>이것이 이 보고서의 핵심 발견이다.</b> "크로스가 떴다"는 사실 자체(골든 96.2%·데드 88.9%)보다 <b>"크로스가 뜨는 순간 가격이 어느 편에 있었는가"</b>가 훨씬 더 결정적이다 — 같은 편(골든&close&gt;SMA20, 데드&close&lt;SMA20)이면 <b>23/23, 23/23 예외 없이 100%</b> 즉시 확정되고, 반대편이면 소수 사례(n=3~4)에서 지연·역전이 뒤섞인다. 즉 SMA끼리의 교차는 "결과"이고, close가 SMA20 위/아래 어디 있는지가 "선행 원인"에 가깝다 — 오늘처럼 close가 이미 15일째 SMA20 위에서 크로스를 기다리는 상황은 정확히 이 100% 셀의 사전조건과 같다.</p>
+
+<h2>3. Whipsaw — 확정 후에도 30% 안팎이 되돌아온다</h2>
+<div class="scgrid">
+<div class="figwrap"><div class="fcap">골든크로스 발생 후, 며칠 안에 반대(데드)크로스가 다시 뜨는지의 누적확률.</div>
+<svg viewBox="0 0 420 252" width="100%" preserveAspectRatio="xMidYMid meet" role="img" style="max-width:420px"><line x1="40" y1="206.0" x2="400" y2="206.0" class="grid"/><text x="32" y="210.0" class="tick" text-anchor="end">0%</text><line x1="40" y1="170.8" x2="400" y2="170.8" class="grid"/><text x="32" y="174.8" class="tick" text-anchor="end">20%</text><line x1="40" y1="135.6" x2="400" y2="135.6" class="grid"/><text x="32" y="139.6" class="tick" text-anchor="end">40%</text><line x1="40" y1="100.4" x2="400" y2="100.4" class="grid"/><text x="32" y="104.4" class="tick" text-anchor="end">60%</text><line x1="40" y1="65.2" x2="400" y2="65.2" class="grid"/><text x="32" y="69.2" class="tick" text-anchor="end">80%</text><line x1="40" y1="30.0" x2="400" y2="30.0" class="grid"/><text x="32" y="34.0" class="tick" text-anchor="end">100%</text><rect x="70.0" y="199.2" width="80" height="6.8" rx="5" fill="var(--bear)"><title>7일: 3.8% (n=26)</title></rect><text x="110.0" y="191.2" class="barval" text-anchor="middle">3.8%</text><text x="110.0" y="224.0" class="tick" text-anchor="middle">7일</text><rect x="180.0" y="185.7" width="80" height="20.3" rx="5" fill="var(--bear)"><title>14일: 11.5% (n=26)</title></rect><text x="220.0" y="177.7" class="barval" text-anchor="middle">11.5%</text><text x="220.0" y="224.0" class="tick" text-anchor="middle">14일</text><rect x="290.0" y="138.3" width="80" height="67.7" rx="5" fill="var(--bear)"><title>30일: 38.5% (n=26)</title></rect><text x="330.0" y="130.3" class="barval" text-anchor="middle">38.5%</text><text x="330.0" y="224.0" class="tick" text-anchor="middle">30일</text><text x="210.0" y="246" class="axl" text-anchor="middle">골든→데드 재반전까지 · n=26</text></svg>
+</div>
+<div class="figwrap"><div class="fcap">데드크로스 발생 후, 며칠 안에 반대(골든)크로스가 다시 뜨는지의 누적확률.</div>
+<svg viewBox="0 0 420 252" width="100%" preserveAspectRatio="xMidYMid meet" role="img" style="max-width:420px"><line x1="40" y1="206.0" x2="400" y2="206.0" class="grid"/><text x="32" y="210.0" class="tick" text-anchor="end">0%</text><line x1="40" y1="170.8" x2="400" y2="170.8" class="grid"/><text x="32" y="174.8" class="tick" text-anchor="end">20%</text><line x1="40" y1="135.6" x2="400" y2="135.6" class="grid"/><text x="32" y="139.6" class="tick" text-anchor="end">40%</text><line x1="40" y1="100.4" x2="400" y2="100.4" class="grid"/><text x="32" y="104.4" class="tick" text-anchor="end">60%</text><line x1="40" y1="65.2" x2="400" y2="65.2" class="grid"/><text x="32" y="69.2" class="tick" text-anchor="end">80%</text><line x1="40" y1="30.0" x2="400" y2="30.0" class="grid"/><text x="32" y="34.0" class="tick" text-anchor="end">100%</text><rect x="70.0" y="193.0" width="80" height="13.0" rx="5" fill="var(--bull)"><title>7일: 7.4% (n=27)</title></rect><text x="110.0" y="185.0" class="barval" text-anchor="middle">7.4%</text><text x="110.0" y="224.0" class="tick" text-anchor="middle">7일</text><rect x="180.0" y="166.9" width="80" height="39.1" rx="5" fill="var(--bull)"><title>14일: 22.2% (n=27)</title></rect><text x="220.0" y="158.9" class="barval" text-anchor="middle">22.2%</text><text x="220.0" y="224.0" class="tick" text-anchor="middle">14일</text><rect x="290.0" y="140.8" width="80" height="65.2" rx="5" fill="var(--bull)"><title>30일: 37.0% (n=27)</title></rect><text x="330.0" y="132.8" class="barval" text-anchor="middle">37.0%</text><text x="330.0" y="224.0" class="tick" text-anchor="middle">30일</text><text x="210.0" y="246" class="axl" text-anchor="middle">데드→골든 재반전까지 · n=27</text></svg>
+</div>
+</div>
+<table>
+<tr><th>방향</th><th>≤7일</th><th>≤14일</th><th>≤30일</th><th>95% CI(30일)</th></tr>
+<tr><td>골든→데드</td><td>3.8% (1/26)</td><td>11.5% (3/26)</td><td class="bear">38.5% (10/26)</td><td class="mut">22.4%–57.5%</td></tr>
+<tr><td>데드→골든</td><td>7.4% (2/27)</td><td>22.2% (6/27)</td><td class="bull">37.0% (10/27)</td><td class="mut">21.5%–55.8%</td></tr>
+</table>
+<p class="interp">단기(≤7일) 재반전은 드물다(3.8%·7.4%) — 크로스 직후 며칠은 상대적으로 안전하다. 그러나 <b>≤30일로 넓히면 골든·데드 모두 약 37~39%</b>가 반대 크로스로 되돌아간다. 방향은 대칭적이라 "골든이 데드보다 더 잘 버틴다" 같은 비대칭은 없다 — 크로스 자체의 whipsaw 리스크는 방향 무관하게 3건 중 1건꼴로 상존한다는 뜻이다. 이는 크로스를 "확정 신호"로 쓰더라도 <b>포지션 종료 규칙(홀딩 상한·손절)이 반드시 별도로 필요</b>함을 뒷받침한다.</p>
+
+<h2>4. 현재 최유사 케이스 — 사전 close&gt;SMA20 연속 ≥10일 (n=9)</h2>
+<p>오늘(07-17)은 close가 SMA20 위에서 <b>15일 연속</b> 머무르며 골든크로스를 기다리는 상태다. 과거 6년 중 같은 패턴(골든크로스로 이어졌고, 그 close&gt;SMA20 연속 유지 기간이 10일 이상으로 길게 지속된 사례)은 9건이었다.</p>
+<div class="figwrap" style="overflow-x:auto">
+<table>
+<tr><th>기준일</th><th>연속일수</th><th>즉시 귀결</th><th>30일 내 데드 재반전</th></tr>
+<tr><td>2021-08-02</td><td>10일</td><td class="bull">즉시 상승 확정</td><td class="mut">없음</td></tr>
+<tr><td>2021-10-12</td><td>11일</td><td class="bull">즉시 상승 확정</td><td class="mut">없음</td></tr>
+<tr><td>2022-03-28</td><td>12일</td><td class="bull">즉시 상승 확정</td><td class="bad">있음 (→04-23)</td></tr>
+<tr><td>2024-02-13</td><td>15일</td><td class="bull">즉시 상승 확정</td><td class="mut">없음</td></tr>
+<tr><td>2024-05-26</td><td>11일</td><td class="bull">즉시 상승 확정</td><td class="mut">없음</td></tr>
+<tr><td>2024-07-29</td><td>15일</td><td class="bull">즉시 상승 확정</td><td class="bad">있음 (→08-15)</td></tr>
+<tr><td>2024-09-26</td><td>13일</td><td class="bull">즉시 상승 확정</td><td class="mut">없음</td></tr>
+<tr><td>2025-04-25</td><td>14일</td><td class="bull">즉시 상승 확정</td><td class="mut">없음</td></tr>
+<tr><td>2025-07-09</td><td>16일</td><td class="bull">즉시 상승 확정</td><td class="mut">없음</td></tr>
+</table>
+</div>
+<p class="interp"><b>9/9(100%)</b>[70.1–100] 전부 즉시 상승 확정됐다 — 오늘 15일째인 지금 상태와 가장 닮은 과거 사례들은 예외 없이 골든크로스가 곧 뒤따랐고 그 즉시 상승 레짐으로 확정됐다. 다만 <b>9건 중 2건(22.2%, 2022-03-28·2024-07-29)</b>은 30일 이내에 데드크로스로 되돌아갔다 — §3의 whipsaw 38.5%(전체 26건 기준)보다는 낮지만 무시할 수준은 아니다. "조건이 갖춰졌다"는 것과 "그 이후에도 안전하다"는 것은 별개의 질문이라는 점을 이 9건이 재확인해준다.</p>
+
+<h2>5. 3부작 종합 — 크로스 전 / 발생 시 / 확정 후</h2>
+<div class="figwrap"><div class="fcap">세 보고서를 잇는 확률 여정: 크로스 전(수렴형 중립의 반전확률) → 크로스 발생 순간(조건부 확정률) → 확정 후(30일 내 되돌림 확률, 9개 유사사례 기준).</div>
+<svg viewBox="0 0 460 290" width="100%" preserveAspectRatio="xMidYMid meet" role="img" style="max-width:460px"><line x1="48" y1="226.0" x2="444" y2="226.0" class="grid"/><text x="40" y="230.0" class="tick" text-anchor="end">0%</text><line x1="48" y1="184.8" x2="444" y2="184.8" class="grid"/><text x="40" y="188.8" class="tick" text-anchor="end">20%</text><line x1="48" y1="143.6" x2="444" y2="143.6" class="grid"/><text x="40" y="147.6" class="tick" text-anchor="end">40%</text><line x1="48" y1="102.4" x2="444" y2="102.4" class="grid"/><text x="40" y="106.4" class="tick" text-anchor="end">60%</text><line x1="48" y1="61.2" x2="444" y2="61.2" class="grid"/><text x="40" y="65.2" class="tick" text-anchor="end">80%</text><line x1="48" y1="20.0" x2="444" y2="20.0" class="grid"/><text x="40" y="24.0" class="tick" text-anchor="end">100%</text><rect x="103.5" y="141.7" width="58" height="84.3" rx="4" fill="var(--neut)"><title>40.9% (n=44)</title></rect><line x1="132.5" y1="169.0" x2="132.5" y2="111.5" stroke="var(--text-primary)" stroke-width="1.5"/><line x1="127.5" y1="169.0" x2="137.5" y2="169.0" stroke="var(--text-primary)" stroke-width="1.5"/><line x1="127.5" y1="111.5" x2="137.5" y2="111.5" stroke="var(--text-primary)" stroke-width="1.5"/><text x="132.5" y="105.5" class="barval" text-anchor="middle">41%</text><text x="132.5" y="244.0" class="tick" text-anchor="middle">① 크로스 전</text><text x="132.5" y="257.0" class="tick" text-anchor="middle">수렴형 반전</text><text x="132.5" y="270.0" class="tickmut" text-anchor="middle">n=44</text><rect x="217.0" y="20.0" width="58" height="206.0" rx="4" fill="var(--bull)"><title>100.0% (n=23)</title></rect><line x1="246.0" y1="49.5" x2="246.0" y2="20.0" stroke="var(--text-primary)" stroke-width="1.5"/><line x1="241.0" y1="49.5" x2="251.0" y2="49.5" stroke="var(--text-primary)" stroke-width="1.5"/><line x1="241.0" y1="20.0" x2="251.0" y2="20.0" stroke="var(--text-primary)" stroke-width="1.5"/><text x="246.0" y="14.0" class="barval" text-anchor="middle">100%</text><text x="246.0" y="244.0" class="tick" text-anchor="middle">② 발생 시</text><text x="246.0" y="257.0" class="tick" text-anchor="middle">조건부 확정</text><text x="246.0" y="270.0" class="tickmut" text-anchor="middle">n=23</text><rect x="330.5" y="180.2" width="58" height="45.8" rx="4" fill="var(--bear)"><title>22.2% (n=9)</title></rect><line x1="359.5" y1="213.0" x2="359.5" y2="113.2" stroke="var(--text-primary)" stroke-width="1.5"/><line x1="354.5" y1="213.0" x2="364.5" y2="213.0" stroke="var(--text-primary)" stroke-width="1.5"/><line x1="354.5" y1="113.2" x2="364.5" y2="113.2" stroke="var(--text-primary)" stroke-width="1.5"/><text x="359.5" y="107.2" class="barval" text-anchor="middle">22%</text><text x="359.5" y="244.0" class="tick" text-anchor="middle">③ 확정 후</text><text x="359.5" y="257.0" class="tick" text-anchor="middle">30일 되돌림</text><text x="359.5" y="270.0" class="tickmut" text-anchor="middle">n=9</text></svg>
+</div>
+<p class="interp">세 보고서를 하나의 타임라인으로 이으면 이렇다. <b>① 크로스 전</b> — <a href="neutral-anatomy-2026-07.html">중립 내부 구조 분석</a>에서 다룬 대로, 직전 하락 뒤 갭이 수렴 중인 중립은 기저율(25.3%)의 1.6배인 <b>40.9%</b>[27.7–55.6] 확률로 상승 반전한다 — 즉 크로스가 뜨기 전부터 이미 "동전보다는 유리하지만 확신은 낮은" 상태다. <b>② 크로스가 실제로 뜨는 순간</b>은 이 보고서의 발견대로, close가 SMA20 같은 편에 있으면 <b>100%</b> 예외 없이 즉시 확정된다 — 불확실성이 사실상 사라진다. <b>③ 그러나 확정 후</b>에도 안심할 수 없다 — 9개 최유사 사례 기준 <b>22.2%</b>(전체 26건 기준으로는 38.5%) 확률로 30일 내 되돌림이 온다. <b>즉 크로스의 예측력은 "발생 순간"에 정점을 찍고, 그 이후로는 다시 불확실성이 자란다.</b> 이 되돌림 리스크를 흡수하는 것이 봇의 포지션 라이프사이클(단일 진입 + holding 상한 42봉 · stop −5% · target +10%)이다 — 크로스가 100% 확정을 줘도 무기한 보유하지 않고, 정해진 규칙으로 청산해 whipsaw 구간의 되돌림 손실을 구조적으로 제한한다.</p>
+
+<h2>6. 방법론·한계</h2>
+<ul>
+<li><b>데이터:</b> <code>tests/fixtures/real_btc_1h_2020plus.csv</code> 1시간봉을 일봉으로 리샘플(24봉 미만인 마지막 불완전 일봉 2026-06-12 15h는 제외)하고, 2026-06-13~2026-07-17 구간은 Binance 완결 일봉(BTCUSDT, 1d)으로 이어붙였다. 겹치는 구간 검증에서 두 소스의 종가 차이는 최대 0.09% 수준으로 무시 가능했다.</li>
+<li><b>레짐 판정:</b> 라이브 봇과 동일한 <code>src.regime_gate._daily_trend_labels</code> 공식(close/rolling(20).mean()/rolling(50).mean(), 첫 60일 워밍업은 강제 neutral)을 그대로 재사용 — 판정 로직 이중화로 인한 드리프트를 방지했다. "귀결 확정"은 크로스일 이후 레짐 라벨이 처음 골든→bullish 또는 데드→bearish(혹은 반대)로 찍히는 시점을 찾아 정의했다(최대 60일 탐색창).</li>
+<li><b>크로스 정의:</b> SMA20−SMA50의 부호가 바뀌는 날을 크로스일로 잡았다(음→양=골든, 양→음=데드). 데이터 특성상 정확히 0이 되는 날은 사실상 없어 이진 판정이 안정적이다.</li>
+<li><b>표본 크기:</b> 전체 골든 26 · 데드 27건은 6년치로는 준수하지만, 조건부로 쪼갠 셀(골든&close&lt;SMA20 n=3, 데드&close&gt;SMA20 n=4, 현재 유사사례 n=9)은 작다. 이런 셀의 CI는 넓고(예: 66.7%[20.8–93.9]) 일화 수준으로만 읽어야 한다.</li>
+<li><b>확정일수 탐색창:</b> 60일 이내에 반대 방향이 먼저 확정되면 그것을 귀결로 기록했다(예: 2022-12-26 골든 → 9일 뒤 bearish 확정). 60일 내 아무 확정도 없는 사례는 이번 전수조사에서 발생하지 않았다.</li>
+<li><b>whipsaw 정의:</b> "반대 크로스가 며칠 뒤 나타나는가"만 측정했다 — 그 반대 크로스가 실제로 레짐을 다시 뒤집었는지(즉 whipsaw 자체의 귀결)는 다루지 않는다. 재반전 크로스도 이 보고서의 §2 조건부 규칙을 그대로 따른다.</li>
+<li><b>비예언:</b> 모든 수치는 「같은 조건의 과거 빈도」다. 크로스 구조는 유동성·거시환경에 따라 바뀔 수 있으며, 100%로 보이는 조건부 셀도 n=23의 유한 표본 결과일 뿐 미래를 보장하지 않는다.</li>
+</ul>
+
+<p class="foot">BTC/USDT · leak-free 일봉 레짐(월/주/일 MTF 리서치 도구) · 표시용 분석 문서 — 라이브 주문 로직과 무관 · 생성 2026-07-18 JST · 데이터 2020-01-01~2026-07-17</p>
+</div>
+
+</body>
+</html>
