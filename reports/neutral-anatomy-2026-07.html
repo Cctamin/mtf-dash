@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BTC 중립 레짐 내부 구조 분석 보고서</title>
+</head>
+<body>
+<style>
+:root {
+  --bull:#008300; --neut:#eda100; --bear:#e34948;
+  --bull-rgb:0,131,0; --bear-rgb:227,73,72;
+  --series-1:#2a78d6;
+  --surface:#fcfcfb; --surface-2:#f4f3f0; --card:#ffffff;
+  --text-primary:#0b0b0b; --text-secondary:#52514e; --text-muted:#86847e;
+  --border:#e3e1db; --grid:#ecece6;
+  --ok:#0ca30c; --bad:#d03b3b;
+}
+:root[data-theme="dark"], :root:not([data-theme="light"]) {}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bull:#22a722; --neut:#c98500; --bear:#e66767;
+    --bull-rgb:34,167,34; --bear-rgb:230,103,103;
+    --series-1:#3987e5;
+    --surface:#141413; --surface-2:#1f1f1d; --card:#1a1a19;
+    --text-primary:#f5f4ee; --text-secondary:#c3c2b7; --text-muted:#8f8d84;
+    --border:#33322e; --grid:#2a2a27;
+    --ok:#3cc23c; --bad:#e66767;
+  }
+}
+:root[data-theme="dark"] {
+    --bull:#22a722; --neut:#c98500; --bear:#e66767;
+    --bull-rgb:34,167,34; --bear-rgb:230,103,103;
+    --series-1:#3987e5;
+    --surface:#141413; --surface-2:#1f1f1d; --card:#1a1a19;
+    --text-primary:#f5f4ee; --text-secondary:#c3c2b7; --text-muted:#8f8d84;
+    --border:#33322e; --grid:#2a2a27;
+    --ok:#3cc23c; --bad:#e66767;
+}
+* { box-sizing:border-box; }
+body { margin:0; background:var(--surface); color:var(--text-primary);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Helvetica Neue","Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+  line-height:1.65; font-size:15px; -webkit-font-smoothing:antialiased; }
+.wrap { max-width:940px; margin:0 auto; padding:32px 22px 80px; }
+h1 { font-size:27px; font-weight:750; letter-spacing:-0.02em; margin:0 0 6px; }
+h2 { font-size:20px; font-weight:700; letter-spacing:-0.01em; margin:52px 0 6px; padding-top:18px; border-top:1px solid var(--border); }
+h3 { font-size:15px; font-weight:700; margin:26px 0 8px; color:var(--text-primary); }
+.sub { color:var(--text-muted); font-size:13px; margin:0 0 6px; }
+p { margin:10px 0; color:var(--text-secondary); }
+p.interp { color:var(--text-primary); }
+b, strong { color:var(--text-primary); font-weight:650; }
+.card { background:var(--card); border:1px solid var(--border); border-radius:14px; padding:20px 22px; margin:18px 0; }
+.tldr { border-left:4px solid var(--series-1); }
+.figwrap { background:var(--card); border:1px solid var(--border); border-radius:14px; padding:16px 14px 8px; margin:16px 0; overflow-x:auto; }
+.fcap { font-size:12.5px; color:var(--text-muted); margin:2px 4px 8px; }
+.grid-tiles { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px; margin:14px 0; }
+.tile { background:var(--surface-2); border:1px solid var(--border); border-radius:12px; padding:14px 16px; }
+.tile .k { font-size:12px; color:var(--text-muted); margin-bottom:3px; }
+.tile .v { font-size:23px; font-weight:750; letter-spacing:-0.02em; }
+.tile .v.sm { font-size:17px; }
+.tile .ci { font-size:11.5px; color:var(--text-muted); }
+.bull { color:var(--bull); } .bear { color:var(--bear); } .neut { color:var(--neut); }
+table { border-collapse:collapse; width:100%; font-size:13.5px; margin:12px 0; }
+th,td { text-align:left; padding:7px 10px; border-bottom:1px solid var(--border); }
+th { color:var(--text-muted); font-weight:600; font-size:12px; text-transform:uppercase; letter-spacing:0.03em; }
+td.mut { color:var(--text-muted); }
+td.ok { color:var(--ok); font-weight:700; } td.bad { color:var(--bad); font-weight:700; }
+tr.unrel td { color:var(--text-muted); }
+.warnbadge { display:inline-block; font-size:10.5px; background:rgba(208,59,59,.14); color:var(--bad); padding:1px 6px; border-radius:6px; margin-left:4px; }
+.curbadge { display:inline-block; font-size:10.5px; background:var(--series-1); color:#fff; padding:1px 7px; border-radius:6px; margin-left:5px; font-weight:700; }
+.chip { display:inline-block; border:1px solid var(--border); border-radius:20px; padding:4px 14px; margin:3px 6px 3px 0; font-size:12.5px; color:var(--text-secondary); background:var(--surface-2); }
+.pathflow-cap { font-size:12px; color:var(--text-muted); margin:8px 4px 0; }
+.legend { display:flex; gap:18px; flex-wrap:wrap; margin:4px 4px 10px; font-size:12.5px; color:var(--text-secondary); }
+.legend span { display:inline-flex; align-items:center; gap:6px; }
+.sw { width:11px; height:11px; border-radius:3px; display:inline-block; }
+.grid { stroke:var(--grid); stroke-width:1; }
+.tick { fill:var(--text-muted); font-size:11px; }
+.tickmut { fill:var(--text-muted); font-size:9.5px; }
+.axl { fill:var(--text-secondary); font-size:11.5px; }
+.dlabel { font-size:11.5px; font-weight:650; }
+.barval { fill:var(--text-primary); font-size:12px; font-weight:700; }
+.warnbox { background:rgba(237,161,0,.10); border:1px solid rgba(237,161,0,.35); border-radius:12px; padding:14px 18px; margin:16px 0; font-size:13.5px; }
+ul { color:var(--text-secondary); } li { margin:4px 0; }
+code { background:var(--surface-2); padding:1px 5px; border-radius:5px; font-size:12.5px; }
+.foot { color:var(--text-muted); font-size:12px; margin-top:40px; }
+.scgrid { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+@media (max-width:640px) { .scgrid { grid-template-columns:1fr; } h1{font-size:23px;} }
+@media print {
+  :root { color-scheme: light; }
+  html, body { background:#fff !important; }
+  .wrap { max-width:100%; padding:6mm 4mm; margin:0; }
+  @page { size:A4 portrait; margin:12mm 10mm; }
+  h1,h2,h3,h4 { break-after:avoid; page-break-after:avoid; }
+  h2 { margin-top:20px; }
+  .card, .figwrap, .warnbox, table, .grid-tiles, .scgrid, svg, .chip, .tile {
+    break-inside:avoid; page-break-inside:avoid;
+  }
+  .scgrid { grid-template-columns:1fr 1fr; }
+  .grid-tiles { grid-template-columns:repeat(3,1fr); }
+  tr { break-inside:avoid; page-break-inside:avoid; }
+  thead { display:table-header-group; }
+  a[href]:after { content:""; }
+  /* 넓은 표(가로 스크롤 컨테이너)는 화면과 달리 인쇄에서 스크롤이 안 되므로
+     고정 레이아웃 + 줄바꿈으로 페이지 폭 안에 강제로 맞춘다 */
+  div[style*="overflow-x"] { overflow:visible !important; }
+  div[style*="overflow-x"] table { table-layout:fixed; width:100%; font-size:7.6pt; }
+  div[style*="overflow-x"] table th,
+  div[style*="overflow-x"] table td { word-break:break-word; overflow-wrap:anywhere; padding:4px 5px; }
+  div[style*="overflow-x"] table td[style*="font-size"] { font-size:7.2pt !important; }
+}
+</style>
+
+
+<div class="wrap">
+<h1>중립(neutral)의 내부 구조 분석 — 전환을 예측하는가</h1>
+<p class="sub">BTC/USDT · 라이브 봇과 동일한 leak-free 일봉 라벨(<code>src.regime_gate</code>) · 2020-01-01 ~ 2026-07-17 (2390일) · 완결 트리플 159건 · 생성 2026-07-18 JST</p>
+
+<div class="card tldr">
+<h3 style="margin-top:0">TL;DR — 내부 구조는 확률을 얼마나 뒤집는가</h3>
+<p class="interp">대시보드의 「레짐 내부」 카드는 중립을 <b>golden_cross_pending / death_cross_pending / chop</b> 세 유형으로 쪼갠다. 6년 159건의 「방향→중립→방향」 전이를 leak-free로 재분석한 결과는 두 갈래로 갈린다.
+<br><br>
+<b>① 정적 유형(golden/death)은 사실상 직전 레짐의 재표기다.</b> 중립 종료 시점의 유형은 직전 방향과 약 <b>95% 일치</b>한다(직전 하락→golden 80/83, 직전 상승→death 72/76). 그래서 <b>P(다음=상승 | golden)=26.2%</b> [18.0–36.5]는 <b>P(다음=상승 | 직전 하락)=25.3%</b>와 거의 같다 — 유형 자체는 기저율 위에 새 정보를 거의 얹지 못한다. (참고: 6년 중립 834일 중 <b>chop로 분류된 날은 0일</b> — §3.)
+<br><br>
+<b>② 동적 구조 — SMA20·SMA50 갭의 수렴 여부 — 는 진짜 신호다.</b> 중립 말미에 갭이 <b>발산</b> 중이면 직전 방향으로 <b>92.3% 재개</b>(n=65)하지만, <b>수렴</b> 중이면 재개율이 <b>59.6%</b>(n=94)로 급락한다. 즉 수렴은 「추세가 풀리는 중」이라는 전환 경보다.
+<br><br>
+<b>현재 대입:</b> 지금은 직전 하락(10일) 뒤 중립이며, 유형은 <b class="neut">golden_cross_pending</b>, 갭은 <b>−4.3% → −1.7%로 수렴 중</b>(라이브 값). 이 「직전 하락 + 갭 수렴」 조건의 과거 44건에서 <b>상승 반전 확률은 40.9%</b> [27.7–55.6] — 무조건 기저율 25.3%의 <b>약 1.6배</b>, 발산형(7.7%)의 <b>5배</b>다. <b>결론: 내부 구조는 하락 재개 기대를 크게 깎지만(재개 75%→약 59%) 뒤집지는 못한다 — 방향은 여전히 하락 재개 쪽으로 약하게 기운다. 표본이 작고(핵심 셀 n=36–44) 예언이 아닌 조건부 빈도로 읽어야 한다.</b></p>
+
+<div class="figwrap" style="margin:14px 0 2px">
+<div class="fcap">현재 상태에 조건을 하나씩 더할 때 P(다음=상승). 정적 유형(golden)은 기저율을 거의 안 움직이지만, 동적 구조(갭 수렴)를 넣으면 반전 확률이 25%→41%로 뛴다. 막대=P(반전), 세로선=95% Wilson CI.</div>
+<svg viewBox="0 0 560 290" width="100%" preserveAspectRatio="xMidYMid meet" role="img" style="max-width:560px"><line x1="48" y1="226.0" x2="544" y2="226.0" class="grid"/><text x="40" y="230.0" class="tick" text-anchor="end">0%</text><line x1="48" y1="184.8" x2="544" y2="184.8" class="grid"/><text x="40" y="188.8" class="tick" text-anchor="end">20%</text><line x1="48" y1="143.6" x2="544" y2="143.6" class="grid"/><text x="40" y="147.6" class="tick" text-anchor="end">40%</text><line x1="48" y1="102.4" x2="544" y2="102.4" class="grid"/><text x="40" y="106.4" class="tick" text-anchor="end">60%</text><line x1="48" y1="61.2" x2="544" y2="61.2" class="grid"/><text x="40" y="65.2" class="tick" text-anchor="end">80%</text><line x1="48" y1="20.0" x2="544" y2="20.0" class="grid"/><text x="40" y="24.0" class="tick" text-anchor="end">100%</text><rect x="81.0" y="173.9" width="58.0" height="52.1" rx="4" fill="var(--bear)"><title>기저(직전 하락): P(반전)=25.3% (n=83)</title></rect><line x1="110.0" y1="190.6" x2="110.0" y2="152.7" stroke="var(--text-primary)" stroke-width="1.5"/><line x1="105.0" y1="190.6" x2="115.0" y2="190.6" stroke="var(--text-primary)" stroke-width="1.5"/><line x1="105.0" y1="152.7" x2="115.0" y2="152.7" stroke="var(--text-primary)" stroke-width="1.5"/><text x="110.0" y="146.7" class="barval" text-anchor="middle">25%</text><text x="110.0" y="244.0" class="tick" text-anchor="middle">기저율</text><text x="110.0" y="257.0" class="tick" text-anchor="middle">(직전 하락)</text><text x="110.0" y="270.0" class="tickmut" text-anchor="middle">n=83</text><rect x="205.0" y="177.1" width="58.0" height="48.9" rx="4" fill="var(--bear)"><title>+golden: 23.8% (n=80)</title></rect><line x1="234.0" y1="193.5" x2="234.0" y2="155.7" stroke="var(--text-primary)" stroke-width="1.5"/><line x1="229.0" y1="193.5" x2="239.0" y2="193.5" stroke="var(--text-primary)" stroke-width="1.5"/><line x1="229.0" y1="155.7" x2="239.0" y2="155.7" stroke="var(--text-primary)" stroke-width="1.5"/><text x="234.0" y="149.7" class="barval" text-anchor="middle">24%</text><text x="234.0" y="244.0" class="tick" text-anchor="middle">+ golden</text><text x="234.0" y="257.0" class="tick" text-anchor="middle">(정적 유형)</text><text x="234.0" y="270.0" class="tickmut" text-anchor="middle">n=80</text><rect x="329.0" y="141.7" width="58.0" height="84.3" rx="4" fill="var(--bull)"><title>+갭 수렴: 40.9% (n=44)</title></rect><line x1="358.0" y1="168.9" x2="358.0" y2="111.5" stroke="var(--text-primary)" stroke-width="1.5"/><line x1="353.0" y1="168.9" x2="363.0" y2="168.9" stroke="var(--text-primary)" stroke-width="1.5"/><line x1="353.0" y1="111.5" x2="363.0" y2="111.5" stroke="var(--text-primary)" stroke-width="1.5"/><text x="358.0" y="105.5" class="barval" text-anchor="middle">41%</text><text x="358.0" y="244.0" class="tick" text-anchor="middle">+ 갭 수렴</text><text x="358.0" y="257.0" class="tick" text-anchor="middle">(동적 구조)</text><text x="358.0" y="270.0" class="tickmut" text-anchor="middle">n=44</text><rect x="453.0" y="140.2" width="58.0" height="85.8" rx="4" fill="var(--bull)"><title>+긴중립+golden: 41.7% (n=36)</title></rect><line x1="482.0" y1="170.1" x2="482.0" y2="106.9" stroke="var(--text-primary)" stroke-width="1.5"/><line x1="477.0" y1="170.1" x2="487.0" y2="170.1" stroke="var(--text-primary)" stroke-width="1.5"/><line x1="477.0" y1="106.9" x2="487.0" y2="106.9" stroke="var(--text-primary)" stroke-width="1.5"/><text x="482.0" y="100.9" class="barval" text-anchor="middle">42%</text><text x="482.0" y="244.0" class="tick" text-anchor="middle">+ 긴중립</text><text x="482.0" y="257.0" class="tick" text-anchor="middle">+ golden</text><text x="482.0" y="270.0" class="tickmut" text-anchor="middle">n=36</text></svg>
+</div>
+<div class="warnbox" style="margin:10px 0 0">⚠ 핵심 조건부 셀은 n=36–44로 작다. 아래 수치는 「같은 조건의 과거 빈도」이며 확률적 경향이지 예언이 아니다.</div>
+</div>
+
+<h2>현재 상태 카드</h2>
+<div class="grid-tiles">
+<div class="tile"><div class="k">현재 레짐</div><div class="v neut">중립</div><div class="ci">2026-07-04 시작</div></div>
+<div class="tile"><div class="k">내부 유형</div><div class="v neut sm">golden_cross</div><div class="ci">_pending (라이브)</div></div>
+<div class="tile"><div class="k">close &gt; SMA20</div><div class="v">15일 연속</div><div class="ci">상향 교차 임박</div></div>
+<div class="tile"><div class="k">SMA20−SMA50 갭</div><div class="v bear sm">-1.681%</div><div class="ci">−4.3%→−1.7% 수렴</div></div>
+<div class="tile"><div class="k">반전(기저·직전하락)</div><div class="v bull">25.3%</div><div class="ci">CI 17.2%–35.6% · n=83</div></div>
+<div class="tile"><div class="k">반전(하락+갭수렴)</div><div class="v bull">40.9%</div><div class="ci">CI 27.7%–55.6% · n=44</div></div>
+</div>
+
+<h2>1. 방법론 — leak-free 내부 상태 정의</h2>
+<p>레짐 라벨은 라이브 봇과 동일한 <code>src.regime_gate.daily_trend_series</code>(일봉 close·SMA20·SMA50, +1일 누수차단 시프트)로 산출한다. 데이터는 <code>tests/fixtures/real_btc_1h_2020plus.csv</code>를 일봉 리샘플(마지막 불완전봉 drop)한 뒤 최근 구간을 <code>regime_history</code> 규약과 동일한 Binance 완결 일봉으로 이어붙였다. 세그먼트 경계는 선행 <b>레짐 방향 분석(analysis.json)</b>의 <code>raw_segments</code>를 그대로 재현했다 — <b>총 322 세그먼트 / 159 트리플이 완전 일치</b>(재구성 검증 mismatch 0; 유일한 차이는 아직 진행 중인 현재 중립이 07-16→07-17로 하루 늘어난 것뿐).</p>
+<p class="interp"><b>누수 방지가 핵심이다.</b> 캘린더 day D의 중립 라벨은 D−1까지의 일봉으로 계산된다(+1일 시프트). 따라서 그 중립일의 「내부 상태」도 <b>동일한 D−1 바의 close·SMA20·SMA50</b>로 정의해야 라벨과 같은 정보만 쓴다(당일 종가를 미리 보지 않음). 유형 규약은 대시보드 카드(<code>scripts/regime_detail.py</code>)와 동일하다:</p>
+<ul>
+<li><b class="neut">golden_cross_pending</b>: close &gt; SMA20 <b>이고</b> SMA20 &lt; SMA50 (가격이 단기선 위로 올라섰으나 단기선이 아직 장기선 아래 — 상향 교차 대기)</li>
+<li><b class="neut">death_cross_pending</b>: close &lt; SMA20 <b>이고</b> SMA20 &gt; SMA50 (하향 교차 대기)</li>
+<li><b class="neut">chop</b>: 나머지 혼조 정렬</li>
+</ul>
+
+<h2>2. 유형별 다음 방향 — 정적 유형은 기저율의 재표기</h2>
+<div class="scgrid">
+<div class="figwrap"><div class="fcap">중립 말미 3일 dominant 유형 → P(다음=상승). 막대=확률, 세로선 95% CI. golden은 하락 재개, death는 상승 재개로 강하게 갈린다.</div><svg viewBox="0 0 420 290" width="100%" preserveAspectRatio="xMidYMid meet" role="img" style="max-width:420px"><line x1="48" y1="226.0" x2="404" y2="226.0" class="grid"/><text x="40" y="230.0" class="tick" text-anchor="end">0%</text><line x1="48" y1="184.8" x2="404" y2="184.8" class="grid"/><text x="40" y="188.8" class="tick" text-anchor="end">20%</text><line x1="48" y1="143.6" x2="404" y2="143.6" class="grid"/><text x="40" y="147.6" class="tick" text-anchor="end">40%</text><line x1="48" y1="102.4" x2="404" y2="102.4" class="grid"/><text x="40" y="106.4" class="tick" text-anchor="end">60%</text><line x1="48" y1="61.2" x2="404" y2="61.2" class="grid"/><text x="40" y="65.2" class="tick" text-anchor="end">80%</text><line x1="48" y1="20.0" x2="404" y2="20.0" class="grid"/><text x="40" y="24.0" class="tick" text-anchor="end">100%</text><rect x="108.0" y="172.0" width="58.0" height="54.0" rx="4" fill="var(--bear)"><title>golden: P(반전=상승)=26.2% (n=84)</title></rect><line x1="137.0" y1="189.0" x2="137.0" y2="150.8" stroke="var(--text-primary)" stroke-width="1.5"/><line x1="132.0" y1="189.0" x2="142.0" y2="189.0" stroke="var(--text-primary)" stroke-width="1.5"/><line x1="132.0" y1="150.8" x2="142.0" y2="150.8" stroke="var(--text-primary)" stroke-width="1.5"/><text x="137.0" y="144.8" class="barval" text-anchor="middle">26%</text><text x="137.0" y="244.0" class="tick" text-anchor="middle">golden</text><text x="137.0" y="257.0" class="tick" text-anchor="middle">cross pending</text><text x="137.0" y="270.0" class="tickmut" text-anchor="middle">n=84</text><rect x="286.0" y="80.4" width="58.0" height="145.6" rx="4" fill="var(--bull)"><title>death: P(반전=상승)=70.7% (n=75)</title></rect><line x1="315.0" y1="103.3" x2="315.0" y2="61.7" stroke="var(--text-primary)" stroke-width="1.5"/><line x1="310.0" y1="103.3" x2="320.0" y2="103.3" stroke="var(--text-primary)" stroke-width="1.5"/><line x1="310.0" y1="61.7" x2="320.0" y2="61.7" stroke="var(--text-primary)" stroke-width="1.5"/><text x="315.0" y="55.7" class="barval" text-anchor="middle">71%</text><text x="315.0" y="244.0" class="tick" text-anchor="middle">death</text><text x="315.0" y="257.0" class="tick" text-anchor="middle">cross pending</text><text x="315.0" y="270.0" class="tickmut" text-anchor="middle">n=75</text></svg></div>
+<div style="align-self:center">
+<table>
+<tr><th>유형(말미 3일)</th><th>n</th><th>P(다음=상승)</th><th>재개율</th></tr>
+<tr><td><b class="neut">golden_cross_pending</b></td><td>84</td><td>26.2%</td><td>76.2%</td></tr>
+<tr><td><b class="neut">death_cross_pending</b></td><td>75</td><td>70.7%</td><td>69.3%</td></tr>
+<tr class="unrel"><td>chop (dominant)</td><td>0</td><td class="mut">—</td><td class="mut">—</td></tr>
+</table>
+<p class="sub" style="margin-top:8px">세그먼트 전체 dominant 유형으로 집계해도 결과 동일(golden n=84, death n=75) — 말미 3일과 전체가 모든 트리플에서 일치.</p>
+</div>
+</div>
+<p class="interp">유형은 다음 방향을 강하게 가르는 것처럼 보이지만(golden→반전 26%, death→반전 71%), 이는 <b>유형이 직전 레짐을 거의 그대로 담고 있기 때문</b>이다. 아래 2차원 표를 보면 유형은 직전 방향과 95% 겹친다:</p>
+<table>
+<tr><th>직전 × 유형(말미3)</th><th>n</th><th>P(다음=상승)</th><th>비고</th></tr>
+<tr><td>직전 하락 · golden</td><td>80</td><td>23.8%</td><td class="mut">주대각(유형=직전과 일치)</td></tr>
+<tr><td>직전 상승 · death</td><td>72</td><td>70.8%</td><td class="mut">주대각</td></tr>
+<tr class="unrel"><td>직전 하락 · death (불일치)</td><td>3</td><td>66.7%</td><td class="mut">n작음 — 참고만</td></tr>
+<tr class="unrel"><td>직전 상승 · golden (불일치)</td><td>4</td><td>75.0%</td><td class="mut">n작음 — 참고만</td></tr>
+</table>
+<p class="interp"><b>P(상승 | golden)=26.2% ≈ P(상승 | 직전 하락)=25.3%</b> — 유형은 기저율 위에 사실상 정보를 더하지 않는다. 유형이 직전 방향과 <b>어긋나는</b> 오프대각 셀(하락인데 death, 상승인데 golden)에서는 방향이 뒤집히는 듯 보이지만 n=3–4로 일화 수준이다.</p>
+
+<h2>3. chop은 왜 비어 있나 (빈 버킷)</h2>
+<p>6년 중립 <b>834일</b>(golden 400일 · death 434일) 중 chop으로 분류된 날은 <b>0일</b>이었다. 이유는 정의상 자명하다: 세 값(close·SMA20·SMA50)의 가능한 6가지 순서 배열 중 단조 정렬 2가지(close&gt;SMA20&gt;SMA50=상승, close&lt;SMA20&lt;SMA50=하락)를 뺀 <b>나머지 4가지가 전부 golden 또는 death 조건을 만족</b>한다. chop은 두 값이 정확히 같을 때(측도 0)만 나오므로 연속 가격 데이터에서는 사실상 발생하지 않는다.</p>
+<div class="warnbox">시사점: 대시보드 「레짐 내부」 카드에서 <b>chop 상태는 실질적으로 표시되지 않는다</b> — 중립은 거의 항상 golden_cross_pending 또는 death_cross_pending 둘 중 하나로 뜬다. 카드를 「어느 쪽 교차가 임박했나」의 이진 신호로 읽으면 된다.</div>
+
+<h2>4. 갭 수렴 — 이 리포트의 핵심 신호</h2>
+<p>정적 유형이 기저율의 재표기라면, <b>중립 동안 SMA20−SMA50 갭이 좁아지는가(수렴)</b>는 별개의 동적 정보다. 각 트리플에서 중립 첫날 대비 마지막날의 |갭|이 줄었으면 <b>수렴</b>, 늘었으면 <b>발산</b>으로 분류했다.</p>
+<div class="figwrap"><div class="fcap">갭 수렴 여부 × 직전 방향 → <b>직전 방향으로의 재개율</b>. 발산형은 어느 방향이든 ~92% 재개(추세 지속)하지만, 수렴형은 재개율이 ~59–60%로 급락한다(전환 위험↑). 막대=재개율, 세로선 95% CI.</div><svg viewBox="0 0 560 290" width="100%" preserveAspectRatio="xMidYMid meet" role="img" style="max-width:560px"><line x1="48" y1="226.0" x2="544" y2="226.0" class="grid"/><text x="40" y="230.0" class="tick" text-anchor="end">0%</text><line x1="48" y1="184.8" x2="544" y2="184.8" class="grid"/><text x="40" y="188.8" class="tick" text-anchor="end">20%</text><line x1="48" y1="143.6" x2="544" y2="143.6" class="grid"/><text x="40" y="147.6" class="tick" text-anchor="end">40%</text><line x1="48" y1="102.4" x2="544" y2="102.4" class="grid"/><text x="40" y="106.4" class="tick" text-anchor="end">60%</text><line x1="48" y1="61.2" x2="544" y2="61.2" class="grid"/><text x="40" y="65.2" class="tick" text-anchor="end">80%</text><line x1="48" y1="20.0" x2="544" y2="20.0" class="grid"/><text x="40" y="24.0" class="tick" text-anchor="end">100%</text><rect x="81.0" y="35.9" width="58.0" height="190.1" rx="4" fill="var(--bear)"><title>하락+발산 재개율 92.3% (n=39)</title></rect><line x1="110.0" y1="61.8" x2="110.0" y2="25.6" stroke="var(--text-primary)" stroke-width="1.5"/><line x1="105.0" y1="61.8" x2="115.0" y2="61.8" stroke="var(--text-primary)" stroke-width="1.5"/><line x1="105.0" y1="25.6" x2="115.0" y2="25.6" stroke="var(--text-primary)" stroke-width="1.5"/><text x="110.0" y="19.6" class="barval" text-anchor="middle">92%</text><text x="110.0" y="244.0" class="tick" text-anchor="middle">하락 뒤</text><text x="110.0" y="257.0" class="tick" text-anchor="middle">발산</text><text x="110.0" y="270.0" class="tickmut" text-anchor="middle">n=39</text><rect x="205.0" y="104.3" width="58.0" height="121.7" rx="4" fill="var(--bear)"><title>하락+수렴 재개율 59.1% (n=44)</title></rect><line x1="234.0" y1="134.5" x2="234.0" y2="77.1" stroke="var(--text-primary)" stroke-width="1.5"/><line x1="229.0" y1="134.5" x2="239.0" y2="134.5" stroke="var(--text-primary)" stroke-width="1.5"/><line x1="229.0" y1="77.1" x2="239.0" y2="77.1" stroke="var(--text-primary)" stroke-width="1.5"/><text x="234.0" y="71.1" class="barval" text-anchor="middle">59%</text><text x="234.0" y="244.0" class="tick" text-anchor="middle">하락 뒤</text><text x="234.0" y="257.0" class="tick" text-anchor="middle">수렴</text><text x="234.0" y="270.0" class="tickmut" text-anchor="middle">n=44</text><rect x="329.0" y="35.9" width="58.0" height="190.1" rx="4" fill="var(--bull)"><title>상승+발산 재개율 92.3% (n=26)</title></rect><line x1="358.0" y1="69.6" x2="358.0" y2="24.3" stroke="var(--text-primary)" stroke-width="1.5"/><line x1="353.0" y1="69.6" x2="363.0" y2="69.6" stroke="var(--text-primary)" stroke-width="1.5"/><line x1="353.0" y1="24.3" x2="363.0" y2="24.3" stroke="var(--text-primary)" stroke-width="1.5"/><text x="358.0" y="18.3" class="barval" text-anchor="middle">92%</text><text x="358.0" y="244.0" class="tick" text-anchor="middle">상승 뒤</text><text x="358.0" y="257.0" class="tick" text-anchor="middle">발산</text><text x="358.0" y="270.0" class="tickmut" text-anchor="middle">n=26</text><rect x="453.0" y="102.4" width="58.0" height="123.6" rx="4" fill="var(--bull)"><title>상승+수렴 재개율 60.0% (n=50)</title></rect><line x1="482.0" y1="130.8" x2="482.0" y2="76.9" stroke="var(--text-primary)" stroke-width="1.5"/><line x1="477.0" y1="130.8" x2="487.0" y2="130.8" stroke="var(--text-primary)" stroke-width="1.5"/><line x1="477.0" y1="76.9" x2="487.0" y2="76.9" stroke="var(--text-primary)" stroke-width="1.5"/><text x="482.0" y="70.9" class="barval" text-anchor="middle">60%</text><text x="482.0" y="244.0" class="tick" text-anchor="middle">상승 뒤</text><text x="482.0" y="257.0" class="tick" text-anchor="middle">수렴</text><text x="482.0" y="270.0" class="tickmut" text-anchor="middle">n=50</text></svg></div>
+<table>
+<tr><th>구분</th><th>n</th><th>재개율</th><th>P(다음=상승)</th></tr>
+<tr><td>발산 (pooled)</td><td>65</td><td>92.3%</td><td>41.5%</td></tr>
+<tr><td>수렴 (pooled)</td><td>94</td><td>59.6%</td><td>51.1%</td></tr>
+<tr><td>직전 하락 · 발산</td><td>39</td><td>92.3%</td><td class="bear">7.7%</td></tr>
+<tr><td>직전 하락 · 수렴</td><td>44</td><td>59.1%</td><td class="bull">40.9%</td></tr>
+</table>
+<p class="interp"><b>이것이 내부 구조의 진짜 예측력이다.</b> 직전 하락 뒤 갭이 발산 중이면 상승 반전은 <b>7.7%</b>[2.7–20.3]에 불과하지만(하락 재개 92.3%), 갭이 수렴 중이면 반전이 <b>40.9%</b>[27.7–55.6]로 <b>5배</b> 뛴다. 수렴은 단기선이 장기선에 붙는 중 = 하락 모멘텀이 식는 중이라는 뜻이고, 그만큼 전환 가능성이 커진다. n=39/44로 §2의 유형 오프대각(n=3–4)보다 훨씬 신뢰할 만하다.</p>
+
+<h2>5. 현재 상태 대입 — 조건부 확률</h2>
+<p>현재: <b class="bear">직전 하락 10일</b> → <b class="neut">중립(진행 중, 15일차)</b>, 유형 <b class="neut">golden_cross_pending</b>, close&gt;SMA20 15일 연속, 갭 <b>−4.3%→−1.7% 수렴</b>(라이브 <code>regime_detail.json</code>, est 2.6일 후 교차). 각 조건표에 대입한 P(다음=상승):</p>
+<table>
+<tr><th>조건</th><th>n</th><th>P(다음=상승)</th><th>95% CI</th></tr>
+<tr><td>직전 하락 (무조건 기저)</td><td>83</td><td>25.3%</td><td class="mut">17.2%–35.6%</td></tr>
+<tr><td>＋ golden_cross_pending (정적 유형)</td><td>80</td><td>23.8%</td><td class="mut">15.8%–34.1%</td></tr>
+<tr><td>＋ 갭 수렴 (동적 구조)</td><td>44</td><td class="ok">40.9%</td><td class="mut">27.7%–55.6%</td></tr>
+<tr><td>＋ 긴 중립(&gt;4일) ＋ golden</td><td>36</td><td>41.7%</td><td class="mut">27.1%–57.8%</td></tr>
+</table>
+<p class="interp">선행 「레짐 방향」 보고서의 기저 결론은 <b>하락 재개 58–69%</b>(직전 하락 74.7% · 긴 중립 55.4% · 13일 생존 57.1%의 범위)였다. 내부 구조를 넣으면: 정적 유형(golden)은 이 그림을 거의 안 바꾼다(반전 23.7%). 그러나 <b>갭 수렴</b> 조건이 반전 확률을 <b>25.3% → 40.9%</b>로 끌어올린다 — 즉 하락 재개 기대를 74.7%에서 <b>약 59%로 깎는다</b>. 이는 선행 보고서 재개율 밴드(58–69%)의 <b>하단</b>에 정확히 안착한다. <b>내부 구조는 확률을 뒤집지는 못하지만(여전히 하락 재개가 최빈 결과), 「약한 하락 우위·낮은 확신」이라는 결론에 구체적 근거를 준다: 지금 갭이 수렴 중이라는 사실이 반전 가능성을 기저율의 1.6배로 키운 상태다.</b></p>
+
+<h2>6. 시대 분할 안정성 (2020–22 vs 2023–26)</h2>
+<table>
+<tr><th>시대</th><th>유형</th><th>n</th><th>P(다음=상승)</th><th>재개율</th></tr>
+<tr><td rowspan="2">2020–22</td><td>golden</td><td>41</td><td>22.0%</td><td>80.5%</td></tr>
+<tr><td>death</td><td>29</td><td>65.5%</td><td>65.5%</td></tr>
+<tr><td rowspan="2">2023–26</td><td>golden</td><td>43</td><td>30.2%</td><td>72.1%</td></tr>
+<tr><td>death</td><td>46</td><td>73.9%</td><td>71.7%</td></tr>
+</table>
+<p class="interp">방향(golden→하락 재개, death→상승 재개)은 두 시대에서 안정적이다. golden의 반전 확률이 2020–22 22.0%에서 2023–26 30.2%로 다소 커졌으나 CI가 넓게 겹쳐 유의한 변화로 보기 어렵다. 갭 수렴 신호를 시대별로 더 쪼개면 셀당 n이 20 미만으로 떨어져 별도 분해는 생략한다.</p>
+
+<h2>7. 방법론·한계</h2>
+<ul>
+<li><b>누수 방지:</b> 라벨과 내부 상태 모두 캘린더 day D를 D−1 일봉으로 계산(+1일 시프트). 당일 종가를 라벨/상태 판정에 쓰지 않음. 라이브 봇 판정 로직(<code>_daily_trend_labels</code>)을 그대로 재사용.</li>
+<li><b>앵커 정합:</b> 322 세그먼트 / 159 트리플이 선행 <code>analysis.json</code>과 완전 일치(검증 mismatch 0). 내부 상태는 159 트리플 전부 커버(최근 2건은 fixture 이후 구간이라 Binance 완결 일봉으로 보완).</li>
+<li><b>표본:</b> 핵심 조건부 셀 n=36–44(갭 수렴×직전방향), 유형 오프대각 n=3–4. 후자는 방향 시사만 있고 통계적 결론 불가.</li>
+<li><b>수렴 정의의 단순성:</b> 중립 첫날 대비 마지막날 |갭| 비교(이진). 경로(중간 반등)를 무시하고, 5일 선형 외삽으로 교차일을 추정하는 대시보드 카드의 <code>est_days_to_cross</code>와는 다른 척도다.</li>
+<li><b>chop 부재:</b> 정의상 연속 데이터에서 chop-dominant는 발생하지 않음 — 유형은 실질 이진(golden/death).</li>
+<li><b>비예언:</b> 모든 수치는 「같은 조건의 과거 빈도」다. 레짐 구조는 시대·유동성에 따라 바뀔 수 있다.</li>
+</ul>
+
+<p class="foot">BTC/USDT · leak-free 일봉 레짐(월/주/일 MTF 리서치 도구) · 표시용 분석 문서 — 라이브 주문 로직과 무관 · 생성 2026-07-18 JST · 데이터 2020-01-01~2026-07-17</p>
+</div>
+
+</body>
+</html>
